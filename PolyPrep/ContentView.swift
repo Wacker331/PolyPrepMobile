@@ -175,6 +175,15 @@ struct ContentView: View {
 struct ProfileView: View {
     @ObservedObject var authService: AuthService
     @ObservedObject var notesManager: NotesManager
+    @StateObject private var userProfile: UserProfile
+    @State private var showImagePicker = false
+    @State private var showAvatarMenu = false
+    
+    init(authService: AuthService, notesManager: NotesManager) {
+        self.authService = authService
+        self.notesManager = notesManager
+        self._userProfile = StateObject(wrappedValue: UserProfile(username: authService.username ?? ""))
+    }
     
     var userNotes: [Note] {
         notesManager.getUserNotes(username: authService.username ?? "")
@@ -188,6 +197,48 @@ struct ProfileView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         VStack(spacing: 20) {
+                            // Аватарка
+                            ZStack {
+                                if let avatarData = userProfile.avatarImage,
+                                   let uiImage = UIImage(data: avatarData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 120, height: 120)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                } else {
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .frame(width: 120, height: 120)
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                // Кнопка изменения аватарки
+                                Button(action: {
+                                    showAvatarMenu = true
+                                }) {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .resizable()
+                                        .frame(width: 30, height: 30)
+                                        .foregroundColor(.black)
+                                        .background(Color.white)
+                                        .clipShape(Circle())
+                                }
+                                .offset(x: 40, y: 40)
+                                .confirmationDialog("Изменить аватар", isPresented: $showAvatarMenu) {
+                                    Button("Выбрать фото") {
+                                        showImagePicker = true
+                                    }
+                                    if userProfile.avatarImage != nil {
+                                        Button("Удалить фото", role: .destructive) {
+                                            userProfile.deleteAvatar()
+                                        }
+                                    }
+                                    Button("Отмена", role: .cancel) { }
+                                }
+                            }
+                            
                             Text(authService.username ?? "User")
                                 .font(.title)
                                 .foregroundColor(Theme.header)
@@ -248,6 +299,13 @@ struct ProfileView: View {
                             .cornerRadius(10)
                     }
                     .buttonStyle(ScaleButtonStyle())
+                }
+            }
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(attachments: .constant([])) { imageData in
+                if let data = imageData {
+                    userProfile.saveAvatar(data)
                 }
             }
         }

@@ -25,6 +25,20 @@ struct NewNoteView: View {
         !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
+    private func togglePrivate() {
+        if isScheduled {
+            isScheduled = false
+        }
+        isPrivate.toggle()
+    }
+    
+    private func toggleScheduled() {
+        if isPrivate {
+            isPrivate = false
+        }
+        isScheduled.toggle()
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -150,12 +164,18 @@ struct NewNoteView: View {
                             .font(.headline)
                             .foregroundColor(.black)
                         
-                        Toggle(isOn: $isPrivate) {
+                        Toggle(isOn: Binding(
+                            get: { isPrivate },
+                            set: { _ in togglePrivate() }
+                        )) {
                             Text("Сделать заметку приватной")
                                 .foregroundColor(.black)
                         }
                         
-                        Toggle(isOn: $isScheduled) {
+                        Toggle(isOn: Binding(
+                            get: { isScheduled },
+                            set: { _ in toggleScheduled() }
+                        )) {
                             Text("Отложенная публикация")
                                 .foregroundColor(.black)
                         }
@@ -224,7 +244,7 @@ struct NewNoteView: View {
                 Text(alertMessage)
             }
             .sheet(isPresented: $showImagePicker) {
-                ImagePicker(attachments: $attachments)
+                ImagePicker(attachments: $attachments, onImageSelected: nil)
             }
             .sheet(isPresented: $showDocumentPicker) {
                 DocumentPicker(attachments: $attachments)
@@ -275,11 +295,12 @@ struct NewNoteView: View {
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var attachments: [Attachment]
     @Environment(\.dismiss) private var dismiss
+    var onImageSelected: ((Data?) -> Void)?
     
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
         config.filter = .images
-        config.selectionLimit = 0
+        config.selectionLimit = onImageSelected != nil ? 1 : 0
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = context.coordinator
         return picker
@@ -300,6 +321,26 @@ struct ImagePicker: UIViewControllerRepresentable {
         
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             parent.dismiss()
+            
+            if let onImageSelected = parent.onImageSelected {
+                if let result = results.first {
+                    result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+                        if let image = object as? UIImage,
+                           let imageData = image.jpegData(compressionQuality: 0.8) {
+                            DispatchQueue.main.async {
+                                onImageSelected(imageData)
+                            }
+                        } else {
+                            DispatchQueue.main.async {
+                                onImageSelected(nil)
+                            }
+                        }
+                    }
+                } else {
+                    onImageSelected(nil)
+                }
+                return
+            }
             
             for result in results {
                 if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
