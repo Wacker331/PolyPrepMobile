@@ -20,4 +20,4 @@ struct KeycloakUserInfo: Codable {
 struct KeycloakError: Codable {
     let error: String
     let error_description: String
-} 
+}

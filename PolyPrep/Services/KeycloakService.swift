@@ -146,4 +146,4 @@ class KeycloakService: ObservableObject {
         userInfo = nil
         isAuthenticated = false
     }
-} 
+}

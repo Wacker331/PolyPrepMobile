@@ -206,3 +206,4 @@ class AuthService: ObservableObject {
         return json["sub"] as? String
     }
 }
+}
