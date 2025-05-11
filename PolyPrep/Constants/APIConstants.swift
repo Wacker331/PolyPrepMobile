@@ -13,5 +13,30 @@ enum APIConstants {
         static let callback = "/auth/mobile/callback"
         static let refresh = "/auth/refresh"
     }
+    
+    enum PostEndpoints {
+        static let post = "/post"
+        static let like = "/like"
+        static let comment = "/comment"
+        static let search = "/post/search"
+        static let random = "/post/random"
+        static let includes = "/includes"
+        static let favourite = "/favourite"
+        static let user = "/user"
+        static let user_posts = "/user/posts"
+    }
+    
+    enum UserEndpoints {
+        static let check_favourite = "/favourite/check"
+        static let user = "/user"
+        static let user_posts = "/user/posts"
+        static let user_photo = "/user/photo"
+    }
+    
+    enum SharedEndpoints
+    {
+        static let get_shared = "/post/shared"
+        static let control_shared = "/shared"
+    }
 }
 

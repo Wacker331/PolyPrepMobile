@@ -79,3 +79,110 @@ func showAlert(title: String, message: String) {
     
     rootViewController.present(alert, animated: true)
 }
+
+func getLikes(id: Int) -> [[String: Any]] {
+    guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.like + "?id=" + String(id)) else {
+        fatalError("Invalid URL")
+    }
+    
+    // 2. Создаем URLRequest
+    var request = URLRequest(url: url)
+    
+    // 3. Добавляем заголовки
+    
+    // 4. Настраиваем метод (GET по умолчанию)
+    request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
+    
+    //        let (data, _) = try! await URLSession.shared.data(for: request)
+    guard let (data, _) = HandleNetwork(request) else { return [] }
+    
+    do {
+        // 1. Декодируем JSON в словарь
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        
+        // 2. Получаем значение по ключу
+        if let count = json?["likes"] as? [[String: Any]] {
+            print("Likes: ", count)
+            return count
+        }
+        else
+        {
+            print("Can't get likes...")}
+    } catch {
+        print("🚨 JSON decoding error:", error.localizedDescription)
+    }
+    return []
+}
+
+func getComments(id: Int) -> [Comment]? {
+    guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.comment + "?id=" + String(id)) else {
+        fatalError("Invalid URL")
+    }
+    
+    // 2. Создаем URLRequest
+    var request = URLRequest(url: url)
+    
+    // 3. Добавляем заголовки
+    
+    // 4. Настраиваем метод (GET по умолчанию)
+    request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
+    
+    //        let (data, _) = try! await URLSession.shared.data(for: request)
+    guard let (data, _) = HandleNetwork(request) else { return nil}
+    
+    do {
+        // 1. Декодируем JSON в словарь
+//        let jsonData = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        let comments = try decoder.decode([Comment].self, from: data)
+        print("COMMENTS: ", comments)
+        return comments
+////        // 2. Получаем значение по ключу
+//        if let count = json?.count as? Int {
+//            print("Comments", count)
+////            return count
+//        }
+//        else
+//        { print("Can't get comments...") }
+    } catch {
+        print("🚨 JSON decoding error:", error.localizedDescription)
+    }
+    return nil
+}
+
+func getUsername(id: String) -> String {
+    guard let url = URL(string: APIConstants.baseURL + APIConstants.UserEndpoints.user + "?id=" + id) else {
+        fatalError("Invalid URL")
+    }
+    
+    // 2. Создаем URLRequest
+    var request = URLRequest(url: url)
+    let accessToken = UserDefaults.standard.string(forKey: "access_token")
+
+    // 3. Добавляем заголовки
+    request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
+
+    // 4. Настраиваем метод (GET по умолчанию)
+    request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
+    
+//        let (data, _) = try! await URLSession.shared.data(for: request)
+    guard let (data, _) = HandleNetwork(request) else { return ""}
+        
+        do {
+                // 1. Декодируем JSON в словарь
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                
+                // 2. Получаем значение по ключу
+                if let username = json?["username"] as? String {
+                    return username
+                }
+                
+            } catch {
+                print("🚨 JSON decoding error:", error.localizedDescription)
+            }
+    
+    return "Неизвестный пользователь"
+}

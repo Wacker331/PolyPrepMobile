@@ -1,18 +1,21 @@
 import Foundation
 
-struct Comment: Identifiable, Equatable {
+struct Comment: Identifiable, Equatable, Codable {
     let id: Int
-    let author: String
-    let date: Date
+//    let author: String
+    let author_id: String
+    let created_at: Date
+    let updated_at: Date
+    let post_id: Int
     let text: String
-    var isNew: Bool = false
+//    var isNew: Bool = false
     
     static func == (lhs: Comment, rhs: Comment) -> Bool {
         lhs.id == rhs.id &&
-        lhs.author == rhs.author &&
-        lhs.date == rhs.date &&
-        lhs.text == rhs.text &&
-        lhs.isNew == rhs.isNew
+//        lhs.author == rhs.author &&
+//        lhs.date == rhs.date &&
+//        lhs.isNew == rhs.isNew &&
+        lhs.text == rhs.text
     }
 }
 
@@ -25,12 +28,48 @@ struct Note: Identifiable, Equatable {
     let hashtags: [String]
     var likesCount: Int
     var commentsCount: Int
-    var HashTags: [String] = []
     var isLiked: Bool = false
     var isSaved: Bool = false
     var like_id: Int
     
-    func SetLike() {
+    init(id: Int, author: String, date: Date, title: String, content: String, hashtags: [String], isPrivate: Bool, isScheduled: Bool? = false, scheduledDate: Date? = nil /*, likesCount: Int, commentsCount: Int, isLiked: Bool, isSaved: Bool? = false, like_id: Int,comments: [Comment], attachments: [Attachment]*/) {
+        self.id = id
+        self.author = author
+        self.date = date
+        self.title = title
+        self.content = content
+        self.hashtags = hashtags
+        self.isPrivate = isPrivate
+        self.isScheduled = isScheduled ?? false
+        self.scheduledDate = scheduledDate
+        
+        // from "/like" backend
+        let likes = getLikes(id: id)
+        self.likesCount = likes.count
+        self.isLiked = false
+        self.like_id = -1
+        let UserId = UserDefaults.standard.string(forKey: "user_id") ?? ""
+        for like in likes {
+            if like["user_id"] as! String == UserId
+            {
+                self.isLiked = true
+                self.like_id = like["id"] as! Int
+            }
+        }
+        
+        // from "/comment" backend
+        let NetworkComments = getComments(id: id)
+        self.comments = NetworkComments ?? []
+        self.commentsCount = NetworkComments?.count ?? 0
+        
+        // from "/favourite" backend
+//        self.isSaved = isSaved ?? false
+        
+        // from "/includes" backend
+//        self.attachments = attachments
+    }
+    
+    mutating func SetLike() {
         guard let url = URL(string: APIConstants.baseURL + "/like") else {
             fatalError("Invalid URL")
         }
@@ -41,8 +80,8 @@ struct Note: Identifiable, Equatable {
 
         // 3. Добавляем заголовки
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
 
         // 4. Настраиваем метод (GET по умолчанию)
         request.httpMethod = "POST" // Можно изменить на POST/PUT и т.д.
@@ -55,23 +94,29 @@ struct Note: Identifiable, Equatable {
                 return
             }
         request.httpBody = jsonData
+        let (data, _) = HandleNetwork(request)!
         
-        URLSession.shared.dataTask(with: request){ data, response, error in
-        
-            guard let httpResponse = response as? HTTPURLResponse else {
-                    print( NSError(domain: "Invalid response", code: 0))
-                return
-                }
-            print("Status code:", httpResponse.statusCode)
-            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
-            
-            let json = try! JSONSerialization.jsonObject(with: data!) as? [String: Any]
-            
-        }.resume()
+        var json: [String: Any] = [:]
+        do { json = try (JSONSerialization.jsonObject(with: data) as? [String: Any])! }
+        catch { return }
+        self.like_id = json["like_id"] as? Int ?? -1
+        likesCount = getLikes(id: id).count
+//        URLSession.shared.dataTask(with: request){ data, response, error in
+//        
+//            guard let httpResponse = response as? HTTPURLResponse else {
+//                    print( NSError(domain: "Invalid response", code: 0))
+//                return
+//                }
+//            print("Status code:", httpResponse.statusCode)
+//            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
+//            
+//            let json = try! JSONSerialization.jsonObject(with: data!) as? [String: Any]
+//            
+//        }.resume()
         
     }
     
-    func DelLike() {
+    mutating func DelLike() {
         guard let url = URL(string: APIConstants.baseURL + "/like" + "?id=" + String(self.like_id)) else {
             fatalError("Invalid URL")
         }
@@ -82,22 +127,25 @@ struct Note: Identifiable, Equatable {
 
         // 3. Добавляем заголовки
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
 
         // 4. Настраиваем метод (GET по умолчанию)
         request.httpMethod = "DELETE" // Можно изменить на POST/PUT и т.д.
         
-        URLSession.shared.dataTask(with: request){ data, response, error in
-        
-            guard let httpResponse = response as? HTTPURLResponse else {
-                    print( NSError(domain: "Invalid response", code: 0))
-                return
-                }
-            print("Status code:", httpResponse.statusCode)
-            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
-            
-        }.resume()
+        let (_, _) = HandleNetwork(request)!
+        like_id = -1
+        likesCount = getLikes(id: id).count
+//        URLSession.shared.dataTask(with: request){ data, response, error in
+//        
+//            guard let httpResponse = response as? HTTPURLResponse else {
+//                    print( NSError(domain: "Invalid response", code: 0))
+//                return
+//                }
+//            print("Status code:", httpResponse.statusCode)
+//            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
+//            
+//        }.resume()
     }
 
     var isPrivate: Bool = false

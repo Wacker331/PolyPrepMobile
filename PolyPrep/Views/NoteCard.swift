@@ -2,7 +2,7 @@ import SwiftUI
 import AVFoundation
 
 struct NoteCard: View {
-    var note: Note
+    @State /*private */var note: Note
     @State private var isLiked = false
     @State private var isExpanded = false
     @State private var textHeight: CGFloat = 0
@@ -235,7 +235,7 @@ struct NoteCard: View {
         .alert("Удалить заметку?", isPresented: $showDeleteAlert) {
             Button("Отмена", role: .cancel) { }
             Button("Удалить", role: .destructive) {
-                notesManager.deleteNote(noteId: note.id)
+                notesManager.deleteNote(note: note)
                 if isSaved {
                     savedNotes.removeAll { $0.id == note.id }
                 }
@@ -286,6 +286,7 @@ struct NoteCard: View {
         // Кнопка комментариев
         Button(action: {
             // Действие для комментариев
+            showComments = true
         }) {
             HStack(spacing: 4) {
                 Image(systemName: "bubble.left")
@@ -293,6 +294,9 @@ struct NoteCard: View {
                 Text("\(note.commentsCount)")
                     .foregroundColor(.black)
             }
+        }
+        .sheet(isPresented: $showComments) {
+            CommentsView(note: note, notesManager: notesManager, currentUsername: currentUsername, savedNotes: $savedNotes)
         }
     }
     
@@ -376,10 +380,12 @@ struct CommentsView: View {
                         if !newComment.isEmpty {
                             let comment = Comment(
                                 id: 0,
-                                author: currentUsername,
-                                date: Date(),
-                                text: newComment,
-                                isNew: true
+//                                author: currentUsername,
+                                author_id: "",
+                                created_at: Date(),
+                                updated_at: Date(),
+                                post_id: -1,
+                                text: newComment
                             )
                             notesManager.addComment(to: note.id, comment: comment)
                             updateSavedNote(with: comment)
@@ -412,10 +418,10 @@ struct CommentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(comment.author)
+                Text(getUsername(id: comment.author_id))
                     .font(.headline)
                 Spacer()
-                Text(comment.date, style: .time)
+                Text(comment.created_at, style: .time)
                     .font(.caption)
                     .foregroundColor(.gray)
             }
@@ -424,7 +430,7 @@ struct CommentView: View {
                 .font(.body)
         }
         .padding()
-        .background(comment.isNew ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+//        .background(comment.isNew ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
         .cornerRadius(10)
     }
 }
@@ -551,9 +557,10 @@ struct AudioPlayerView: View {
             title: "Конспекты по кмзи от Пупки Лупкиной",
             content: "Представляю вам свои гадкие конспекты по вышматы или не вышмату не знаб но не по кмзи точно",
             hashtags: ["#матан", "#крипта", "#бип"],
-            likesCount: 1,
-            commentsCount: 0,
-            like_id: -1
+            isPrivate: false
+//            likesCount: 1,
+//            commentsCount: 0,
+//            like_id: -1
         ),
         savedNotes: .constant([]),
         notesManager: NotesManager(),

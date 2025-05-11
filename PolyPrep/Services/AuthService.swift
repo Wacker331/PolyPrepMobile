@@ -31,6 +31,10 @@ class AuthService: ObservableObject {
         get { UserDefaults.standard.string(forKey: "refresh_token") }
         set { UserDefaults.standard.set(newValue, forKey: "refresh_token") }
     }
+    private var user_id: String? {
+        get { UserDefaults.standard.string(forKey: "user_id") }
+        set { UserDefaults.standard.set(newValue, forKey: "user_id") }
+    }
     
     init() {
         isLoggedIn = RefreshToken(refresh_token: self.refreshToken ?? "")

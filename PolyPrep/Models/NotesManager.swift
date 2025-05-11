@@ -86,7 +86,7 @@ class NotesManager: ObservableObject {
         
         // 2. Создаем URLRequest
         var request = URLRequest(url: url)
-
+        
         // 3. Добавляем заголовки
         let accessToken = UserDefaults.standard.string(forKey: "access_token")
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
@@ -94,108 +94,38 @@ class NotesManager: ObservableObject {
         request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
         request.httpMethod = "GET"
         
-//        let (data, _) = try! await URLSession.shared.data(for: request)
+        //        let (data, _) = try! await URLSession.shared.data(for: request)
         guard let (data, _) = HandleNetwork(request) else {
             return
         }
+        
+        do {
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
             
-            
-                do {
-                    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                    
-                    if let posts = json?["posts"] as? [[String: Any]]
-                    {
-                        for post in posts {
-                            addNote(
-                                Note(
-                                    id: post["id"] as! Int,
-                                    author: getUsername(id: post["author_id"] as! String),
-                                    date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
-                                    title: post["title"] as! String, content: post["text"] as! String,
-                                    hashtags: [],
-                                    likesCount: getLikesCount(id: post["id"] as! Int),
-                                    commentsCount: 0,
-                                    HashTags: post["hashtages"] as! [String],
-                                    like_id: -1
-                                )
-                            )
-                            }
-                    }
-                    
-                } catch {
-                    print("🚨 JSON decoding error:", error.localizedDescription)
+            if let posts = json?["posts"] as? [[String: Any]]
+            {
+                for post in posts {
+//                    let comments = getComments(id: post["id"] as! Int) ?? []
+                    addNote(
+                        Note(
+                            id: post["id"] as! Int,
+                            author: getUsername(id: post["author_id"] as! String),
+                            date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
+                            title: post["title"] as! String, content: post["text"] as! String,
+                            hashtags: post["hashtages"] as! [String],
+                            isPrivate: !(post["public"] as! Bool)
+//                            likesCount: getLikesCount(id: post["id"] as! Int),
+//                            commentsCount: comments.count,
+//                            like_id: -1,
+//                            comments: comments
+                        )
+                    )
                 }
-    }
-    
-    func getUsername(id: String) -> String {
-        guard let url = URL(string: APIConstants.baseURL + "/user" + "?id=" + id) else {
-            fatalError("Invalid URL")
+            }
+            
+        } catch {
+            print("🚨 JSON decoding error:", error.localizedDescription)
         }
-        
-        // 2. Создаем URLRequest
-        var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
-
-        // 3. Добавляем заголовки
-        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
-
-        // 4. Настраиваем метод (GET по умолчанию)
-        request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
-        
-//        let (data, _) = try! await URLSession.shared.data(for: request)
-        guard let (data, _) = HandleNetwork(request) else { return ""}
-            
-            do {
-                    // 1. Декодируем JSON в словарь
-                    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                    
-                    // 2. Получаем значение по ключу
-                    if let username = json?["username"] as? String {
-                        return username
-                    }
-                    
-                } catch {
-                    print("🚨 JSON decoding error:", error.localizedDescription)
-                }
-        
-        return "Неизвестный пользователь"
-    }
-    
-    func getLikesCount(id: Int) -> Int {
-        guard let url = URL(string: APIConstants.baseURL + "/like" + "?id=" + String(id)) else {
-            fatalError("Invalid URL")
-        }
-        
-        // 2. Создаем URLRequest
-        var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
-
-        // 3. Добавляем заголовки
-
-        // 4. Настраиваем метод (GET по умолчанию)
-        request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
-        
-//        let (data, _) = try! await URLSession.shared.data(for: request)
-        guard let (data, _) = HandleNetwork(request) else { return 0 }
-            
-            do {
-                    // 1. Декодируем JSON в словарь
-                    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                    
-                    // 2. Получаем значение по ключу
-                    if let count = json?["count"] as? Int {
-                        print("Likes", count)
-                        return count
-                    }
-                else
-                {print("Can't get likes...")}
-                    
-                } catch {
-                    print("🚨 JSON decoding error:", error.localizedDescription)
-                }
-        return 0
     }
     
     func UploadNote(Note: Note) {
@@ -218,7 +148,7 @@ class NotesManager: ObservableObject {
                 "title": Note.title,
                 "text": Note.content,
                 "public": true,
-                "hashtages": Note.HashTags,
+                "hashtages": Note.hashtags,
                 "scheduled_at": NSNull() // эквивалент null в JSON
             ]
         
@@ -277,8 +207,35 @@ class NotesManager: ObservableObject {
         return "\(count)"
     }
     
-    func deleteNote(noteId: Int) {
-        notes.removeAll { $0.id == noteId }
+    private func NetworkDelete(_ note: Note)
+    {
+        guard let url = URL(string: APIConstants.baseURL + "/post?id=" + String(note.id)) else {
+            fatalError("Invalid URL")
+        }
+        
+        print("Network delete post: ", url.absoluteString)
+        var request = URLRequest(url: url)
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "DELETE"
+        
+//        URLSession.shared.dataTask(with: request){ data, response, error in
+//            
+//            guard let httpResponse = response as? HTTPURLResponse else {
+//                print( NSError(domain: "Invalid response", code: 0))
+//                return
+//            }
+//            print("Status code:", httpResponse.statusCode)
+//            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
+//        }.resume()
+        let (_, _) = HandleNetwork(request)!
+    }
+    
+    func deleteNote(note: Note) {
+        NetworkDelete(note)
+        notes.removeAll { $0.id == note.id }
+        
     }
     
     func getScheduledNotes(username: String) -> [Note] {
