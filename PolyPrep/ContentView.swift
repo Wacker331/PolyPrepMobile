@@ -66,7 +66,7 @@ struct ContentView: View {
                                 Button(action: {
                                     // Действие для поиска
                                     Task {
-                                        await notesManager.fetchNotes()
+                                        notesManager.fetchNotes()
                                     }
                                 }) {
                                     HStack {

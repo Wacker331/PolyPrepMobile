@@ -99,7 +99,6 @@ struct Note: Identifiable, Equatable {
             
         }.resume()
     }
-}
 
     var isPrivate: Bool = false
     var isScheduled: Bool = false

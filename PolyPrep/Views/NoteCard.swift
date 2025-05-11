@@ -14,12 +14,12 @@ struct NoteCard: View {
     var currentUsername: String
     
     // Используем computed property для синхронизации состояния лайка
-    private var isLiked: Bool {
-        if let savedNote = savedNotes.first(where: { $0.id == note.id }) {
-            return savedNote.isLiked
-        }
-        return note.isLiked
-    }
+//    private var isLiked: Bool {
+//        if let savedNote = savedNotes.first(where: { $0.id == note.id }) {
+//            return savedNote.isLiked
+//        }
+//        return note.isLiked
+//    }
     
     private var likesCount: Int {
         if let savedNote = savedNotes.first(where: { $0.id == note.id }) {
@@ -215,49 +215,13 @@ struct NoteCard: View {
             
             // Нижняя часть с кнопками
             HStack(spacing: 16) {
-                // Кнопка лайка
-                Button(action: {
-                    withAnimation {
-                        isLiked.toggle()
-                        likesCount += isLiked ? 1 : -1
-                        if (isLiked)
-                        {
-                            note.SetLike()
-                        }
-                        else
-                        {
-                            note.DelLike()
-                        }
-                    }
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: isLiked ? "hand.thumbsup.fill" : "hand.thumbsup")
-                            .foregroundColor(isLiked ? .blue : .black)
-                        Text("\(likesCount)")
-                            .foregroundColor(.black)
-                    }
-                }
+                likeButton
                 
-                // Кнопка комментариев
-                Button(action: {
-                    // Действие для комментариев
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "bubble.left")
-                            .foregroundColor(.black)
-                        Text("\(note.commentsCount)")
-                            .foregroundColor(.black)
-                    }
-                }
+                commentButton
                 
                 Spacer()
                 
-                Button(action: {
-                    shareNote()
-                }) {
-                    Image(systemName: "square.and.arrow.up")
-                        .foregroundColor(.black)
-                }
+                shareButton
             }
         }
         .padding()
@@ -289,6 +253,56 @@ struct NoteCard: View {
            let window = windowScene.windows.first,
            let rootVC = window.rootViewController {
             rootVC.present(activityVC, animated: true)
+        }
+    }
+    private var likeButton: some View
+    {
+        // Кнопка лайка
+        Button(action: {
+            withAnimation {
+                isLiked.toggle()
+//                likesCount += isLiked ? 1 : -1
+                if (isLiked)
+                {
+                    note.SetLike()
+                }
+                else
+                {
+                    note.DelLike()
+                }
+            }
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: isLiked ? "hand.thumbsup.fill" : "hand.thumbsup")
+                    .foregroundColor(isLiked ? .blue : .black)
+                Text("\(likesCount)")
+                    .foregroundColor(.black)
+            }
+        }
+    }
+    
+    private var commentButton: some View
+    {
+        // Кнопка комментариев
+        Button(action: {
+            // Действие для комментариев
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: "bubble.left")
+                    .foregroundColor(.black)
+                Text("\(note.commentsCount)")
+                    .foregroundColor(.black)
+            }
+        }
+    }
+    
+    private var shareButton: some View
+    {
+        Button(action: {
+            shareNote()
+        }) {
+            Image(systemName: "square.and.arrow.up")
+                .foregroundColor(.black)
         }
     }
 }
@@ -361,6 +375,7 @@ struct CommentsView: View {
                     Button(action: {
                         if !newComment.isEmpty {
                             let comment = Comment(
+                                id: 0,
                                 author: currentUsername,
                                 date: Date(),
                                 text: newComment,
@@ -530,13 +545,15 @@ struct AudioPlayerView: View {
 #Preview {
     NoteCard(
         note: Note(
+            id: 0,
             author: "Макс Пупкин",
             date: Date(),
             title: "Конспекты по кмзи от Пупки Лупкиной",
             content: "Представляю вам свои гадкие конспекты по вышматы или не вышмату не знаб но не по кмзи точно",
             hashtags: ["#матан", "#крипта", "#бип"],
             likesCount: 1,
-            commentsCount: 0
+            commentsCount: 0,
+            like_id: -1
         ),
         savedNotes: .constant([]),
         notesManager: NotesManager(),

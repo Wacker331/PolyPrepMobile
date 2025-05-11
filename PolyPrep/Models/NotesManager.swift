@@ -31,6 +31,7 @@ class NotesManager: ObservableObject {
     
     init() {
         startScheduledNotesTimer()
+        fetchNotes()
     }
     
     deinit {
@@ -76,7 +77,7 @@ class NotesManager: ObservableObject {
         notes.filter { $0.author == username }
     }
     
-    func fetchNotes() async
+    func fetchNotes()
     {
         notes.removeAll()
         guard let url = URL(string: APIConstants.baseURL + "/post/random" + "?count=10") else {
@@ -93,7 +94,10 @@ class NotesManager: ObservableObject {
         request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
         request.httpMethod = "GET"
         
-        let (data, _) = try! await URLSession.shared.data(for: request)
+//        let (data, _) = try! await URLSession.shared.data(for: request)
+        guard let (data, _) = HandleNetwork(request) else {
+            return
+        }
             
             
                 do {
@@ -105,10 +109,11 @@ class NotesManager: ObservableObject {
                             addNote(
                                 Note(
                                     id: post["id"] as! Int,
-                                    author: try await getUsername(id: post["author_id"] as! String),
+                                    author: getUsername(id: post["author_id"] as! String),
                                     date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
                                     title: post["title"] as! String, content: post["text"] as! String,
-                                    likesCount: try await getLikesCount(id: post["id"] as! Int),
+                                    hashtags: [],
+                                    likesCount: getLikesCount(id: post["id"] as! Int),
                                     commentsCount: 0,
                                     HashTags: post["hashtages"] as! [String],
                                     like_id: -1
@@ -122,7 +127,7 @@ class NotesManager: ObservableObject {
                 }
     }
     
-    func getUsername(id: String) async -> String {
+    func getUsername(id: String) -> String {
         guard let url = URL(string: APIConstants.baseURL + "/user" + "?id=" + id) else {
             fatalError("Invalid URL")
         }
@@ -139,7 +144,8 @@ class NotesManager: ObservableObject {
         // 4. Настраиваем метод (GET по умолчанию)
         request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
         
-        let (data, _) = try! await URLSession.shared.data(for: request)
+//        let (data, _) = try! await URLSession.shared.data(for: request)
+        guard let (data, _) = HandleNetwork(request) else { return ""}
             
             do {
                     // 1. Декодируем JSON в словарь
@@ -157,7 +163,7 @@ class NotesManager: ObservableObject {
         return "Неизвестный пользователь"
     }
     
-    func getLikesCount(id: Int) async -> Int {
+    func getLikesCount(id: Int) -> Int {
         guard let url = URL(string: APIConstants.baseURL + "/like" + "?id=" + String(id)) else {
             fatalError("Invalid URL")
         }
@@ -167,14 +173,12 @@ class NotesManager: ObservableObject {
         let accessToken = UserDefaults.standard.string(forKey: "access_token")
 
         // 3. Добавляем заголовки
-        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
 
         // 4. Настраиваем метод (GET по умолчанию)
         request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
         
-        let (data, _) = try! await URLSession.shared.data(for: request)
+//        let (data, _) = try! await URLSession.shared.data(for: request)
+        guard let (data, _) = HandleNetwork(request) else { return 0 }
             
             do {
                     // 1. Декодируем JSON в словарь
@@ -234,11 +238,9 @@ class NotesManager: ObservableObject {
             print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
         }.resume()
     }
-    
-}
 
     
-    func toggleLike(for noteId: UUID) {
+    func toggleLike(for noteId: Int) {
         if let index = notes.firstIndex(where: { $0.id == noteId }) {
             notes[index].isLiked.toggle()
             notes[index].likesCount += notes[index].isLiked ? 1 : -1
@@ -251,14 +253,14 @@ class NotesManager: ObservableObject {
         }
     }
     
-    func updateNoteLikes(noteId: UUID, isLiked: Bool, likesCount: Int) {
+    func updateNoteLikes(noteId: Int, isLiked: Bool, likesCount: Int) {
         if let index = notes.firstIndex(where: { $0.id == noteId }) {
             notes[index].isLiked = isLiked
             notes[index].likesCount = likesCount
         }
     }
     
-    func addComment(to noteId: UUID, comment: Comment) {
+    func addComment(to noteId: Int, comment: Comment) {
         if let index = notes.firstIndex(where: { $0.id == noteId }) {
             var updatedNote = notes[index]
             updatedNote.comments.insert(comment, at: 0)
@@ -275,7 +277,7 @@ class NotesManager: ObservableObject {
         return "\(count)"
     }
     
-    func deleteNote(noteId: UUID) {
+    func deleteNote(noteId: Int) {
         notes.removeAll { $0.id == noteId }
     }
     

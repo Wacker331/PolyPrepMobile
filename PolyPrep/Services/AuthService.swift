@@ -33,7 +33,48 @@ class AuthService: ObservableObject {
     }
     
     init() {
-        self.fetchUserInfo(token: self.accessToken ?? "")
+        isLoggedIn = RefreshToken(refresh_token: self.refreshToken ?? "")
+        if (isLoggedIn)
+        {
+            self.fetchUserInfo(token: self.accessToken ?? "")
+        }
+    }
+    
+    func RefreshToken(refresh_token: String) -> Bool
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.AuthEndpoints.refresh) else { return false }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let requestBody: [String: Any] = [
+                "refresh_token": refreshToken ?? NSNull()
+            ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
+        
+        guard let (data, response) = HandleNetwork(request) else {
+            return false
+        }
+        
+        if (response.statusCode == 200)
+        {
+            do {
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                DispatchQueue.main.async {
+                    self.accessToken = json?["access_token"] as? String ?? ""
+                    self.refreshToken = json?["refresh_token"] as? String ?? ""
+                    self.fetchUserInfo(token: self.accessToken!)
+                }
+            } catch {}
+            return true
+        }
+        else if (response.statusCode == 405)
+        {
+            self.accessToken = ""
+            self.refreshToken = ""
+            return false
+        }
+        print("ERROR: ", String(data: data, encoding: .utf8) ?? "No data...")
+        return false
     }
     
     func CheckAuth(with session: WebAuthenticationSession) async
@@ -53,7 +94,8 @@ class AuthService: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
         do
         {
-            let (data, _) = try! await URLSession.shared.data(for: request)
+//            let (data, _) = try! await URLSession.shared.data(for: request)
+            let (data, _) = HandleNetwork(request)!
             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             if json?["redirect"] as? Bool == true
             {
@@ -63,7 +105,7 @@ class AuthService: ObservableObject {
                     using: URL(string: redirectURL!)!,
                     callbackURLScheme: "yourapp"
                 )
-                let code = self.handleAuthCallback(url: urlWithToken)
+                var _: () = self.handleAuthCallback(url: urlWithToken)
             }
             else
             {
@@ -205,5 +247,4 @@ class AuthService: ObservableObject {
         // 3. Извлекаем поле "sub"
         return json["sub"] as? String
     }
-}
 }
