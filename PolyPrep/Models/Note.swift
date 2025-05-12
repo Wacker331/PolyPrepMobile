@@ -19,7 +19,7 @@ struct Comment: Identifiable, Equatable, Codable {
     }
 }
 
-struct Note: Identifiable, Equatable {
+class Note: Identifiable, Equatable {
     let id: Int
     let author: String
     let date: Date
@@ -69,7 +69,7 @@ struct Note: Identifiable, Equatable {
 //        self.attachments = attachments
     }
     
-    mutating func SetLike() {
+    func SetLike() {
         guard let url = URL(string: APIConstants.baseURL + "/like") else {
             fatalError("Invalid URL")
         }
@@ -116,7 +116,7 @@ struct Note: Identifiable, Equatable {
         
     }
     
-    mutating func DelLike() {
+    func DelLike() {
         guard let url = URL(string: APIConstants.baseURL + "/like" + "?id=" + String(self.like_id)) else {
             fatalError("Invalid URL")
         }

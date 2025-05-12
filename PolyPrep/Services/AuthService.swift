@@ -196,6 +196,7 @@ class AuthService: ObservableObject {
                     self.userInfo = userInfo
                     self.username = userInfo.username
                     self.isLoggedIn = true
+                    self.user_id = userInfo.id
                 }
             } catch {
                 DispatchQueue.main.async {

@@ -139,17 +139,17 @@ class NotesManager: ObservableObject {
 
         // 3. Добавляем заголовки
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
 
         // 4. Настраиваем метод (GET по умолчанию)
         request.httpMethod = "POST" // Можно изменить на POST/PUT и т.д.
         let requestBody: [String: Any] = [
                 "title": Note.title,
                 "text": Note.content,
-                "public": true,
+                "public": !(Note.isPrivate),
                 "hashtages": Note.hashtags,
-                "scheduled_at": NSNull() // эквивалент null в JSON
+                "scheduled_at": Note.scheduledDate ?? NSNull() // эквивалент null в JSON
             ]
         
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
@@ -158,15 +158,16 @@ class NotesManager: ObservableObject {
             }
         request.httpBody = jsonData
         
-        URLSession.shared.dataTask(with: request){ data, response, error in
-        
-            guard let httpResponse = response as? HTTPURLResponse else {
-                    print( NSError(domain: "Invalid response", code: 0))
-                return
-                }
-            print("Status code:", httpResponse.statusCode)
-            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
-        }.resume()
+//        URLSession.shared.dataTask(with: request){ data, response, error in
+//        
+//            guard let httpResponse = response as? HTTPURLResponse else {
+//                    print( NSError(domain: "Invalid response", code: 0))
+//                return
+//                }
+//            print("Status code:", httpResponse.statusCode)
+//            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
+//        }.resume()
+        let (_, _) = HandleNetwork(request)!
     }
 
     
@@ -190,13 +191,42 @@ class NotesManager: ObservableObject {
         }
     }
     
-    func addComment(to noteId: Int, comment: Comment) {
-        if let index = notes.firstIndex(where: { $0.id == noteId }) {
-            var updatedNote = notes[index]
-            updatedNote.comments.insert(comment, at: 0)
-            updatedNote.commentsCount += 1
-            notes[index] = updatedNote
+    func NetworkAddComment(comment: Comment, note: inout Note)
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.comment) else {
+            fatalError("Invalid URL")
         }
+        
+        var request = URLRequest(url: url)
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "POST"
+        
+        let requestBody: [String: Any] = [
+            "text": comment.text,
+            "post_id": note.id
+        ]
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            print("Failed to encode JSON")
+            return
+        }
+        request.httpBody = jsonData
+        
+        let (_, _) = HandleNetwork(request)!
+        
+        note.comments = getComments(id: note.id) ?? []
+        note.commentsCount = note.comments.count
+    }
+    
+    func addComment(to note: inout Note, comment: Comment) {
+//        if let index = notes.firstIndex(where: { $0.id == noteId }) {
+//            var updatedNote = notes[index]
+//            updatedNote.comments.insert(comment, at: 0)
+//            updatedNote.commentsCount += 1
+//            notes[index] = updatedNote
+//        }
+        NetworkAddComment(comment: comment, note: &note)
     }
     
     func formatCount(_ count: Int) -> String {

@@ -281,14 +281,7 @@ struct NewNoteView: View {
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             content: content.trimmingCharacters(in: .whitespacesAndNewlines),
             hashtags: hashtagsArray,
-//            likesCount: 0,
-//            commentsCount: 0,
-//            HashTags: hashtags.components(separatedBy: " "),
-//            like_id: -1,
             isPrivate: isPrivate || isScheduled // Отложенные заметки всегда приватные
-//            isScheduled: isScheduled,
-//            scheduledDate: isScheduled ? scheduledDate : nil,
-//            attachments: attachments
         )
         onNoteCreated(newNote)
         dismiss()

@@ -50,6 +50,12 @@ struct ContentView: View {
                             // Список заметок
                             ScrollView {
                                 LazyVStack(spacing: 16) {
+                                    //                                    ForEach(Array(notesManager.notes.enumerated()), id: \.element.id) { index, _ in
+                                    //                                        NoteCard(note: &notesManager.notes[index],
+                                    //                                                 savedNotes: $savedNotes,
+                                    //                                                 notesManager: notesManager,
+                                    //                                                 currentUsername: authService.username ?? "Неизвестный пользователь").contentShape(Rectangle())
+                                    //                                    }
                                     ForEach(notesManager.notes) { note in
                                         NoteCard(note: note, savedNotes: $savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                             .contentShape(Rectangle())
@@ -60,48 +66,7 @@ struct ContentView: View {
                             }
                             .scrollDismissesKeyboard(.immediately)
                             
-                            // Кнопки внизу
-                            HStack(spacing: 20) {
-                                // Кнопка поиска
-                                Button(action: {
-                                    // Действие для поиска
-                                    Task {
-                                        notesManager.fetchNotes()
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "magnifyingglass")
-                                            .foregroundColor(.black)
-                                        Text("Поиск")
-                                            .foregroundColor(.black)
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .background(Color.white)
-                                    .cornerRadius(20)
-                                }
-                                
-                                // Кнопка новой заметки
-                                Button(action: {
-                                    if authService.isLoggedIn {
-                                        showNewNote = true
-                                    } else {
-                                        selectedTab = 2
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "plus")
-                                            .foregroundColor(.black)
-                                        Text("Новая заметка")
-                                            .foregroundColor(.black)
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .background(Color.white)
-                                    .cornerRadius(20)
-                                }
-                            }
-                            .padding(.bottom, 8)
+                            BottomButtons
                         }
                     }
                 }
@@ -117,39 +82,9 @@ struct ContentView: View {
                 }
                 .tag(0)
                 
-                // Bookmarks Tab
-                NavigationView {
-                    ZStack {
-                        Theme.background.edgesIgnoringSafeArea(.all)
-                        
-                        ScrollView {
-                            LazyVStack(spacing: 16) {
-                                ForEach(savedNotes) { note in
-                                    NoteCard(note: note, savedNotes: $savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
-                                        .contentShape(Rectangle())
-                                }
-                            }
-                            .padding(.top, 62)
-                            .padding(.bottom, 16)
-                        }
-                        .scrollDismissesKeyboard(.immediately)
-                    }
-                }
-                .tabItem {
-                    Image(systemName: "bookmark.fill")
-                    Text("Закладки")
-                }
-                .tag(1)
+                BookmarksTab
                 
-                // Profile Tab
-                NavigationView {
-                    ProfileView(authService: authService, notesManager: notesManager)
-                }
-                .tabItem {
-                    Image(systemName: "person.fill")
-                    Text("Профиль")
-                }
-                .tag(2)
+                ProfileTab
             }
             .accentColor(Theme.accent)
             
@@ -174,6 +109,98 @@ struct ContentView: View {
         .onOpenURL { url in
             authService.handleAuthCallback(url: url)
         }
+    }
+    
+    private var ProfileTab: some View
+    {
+        // Profile Tab
+        NavigationView {
+            ProfileView(authService: authService, notesManager: notesManager)
+        }
+        .tabItem {
+            Image(systemName: "person.fill")
+            Text("Профиль")
+        }
+        .tag(2)
+    }
+    
+    private var BookmarksTab: some View
+    {
+        // Bookmarks Tab
+        NavigationView {
+            ZStack {
+                Theme.background.edgesIgnoringSafeArea(.all)
+                
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        //                        ForEach(Array(savedNotes.enumerated()), id: \.element.id) { index, _ in
+                        //                            NoteCard(note: &notesManager.notes[index],
+                        //                                     savedNotes: $savedNotes,
+                        //                                     notesManager: notesManager,
+                        //                                     currentUsername: authService.username ?? "Неизвестный пользователь").contentShape(Rectangle())
+                        //                        }
+                        ForEach(savedNotes) { note in
+                            NoteCard(note: note, savedNotes: $savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
+                                .contentShape(Rectangle())
+                        }
+                    }
+                    .padding(.top, 62)
+                    .padding(.bottom, 16)
+                }
+                .scrollDismissesKeyboard(.immediately)
+            }
+        }
+        .tabItem {
+            Image(systemName: "bookmark.fill")
+            Text("Закладки")
+        }
+        .tag(1)
+    }
+    
+    private var BottomButtons: some View
+    {
+        // Кнопки внизу
+        HStack(spacing: 20) {
+            // Кнопка поиска
+            Button(action: {
+                // Действие для поиска
+                Task {
+                    notesManager.fetchNotes()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.black)
+                    Text("Поиск")
+                        .foregroundColor(.black)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .cornerRadius(20)
+            }
+            
+            // Кнопка новой заметки
+            Button(action: {
+                if authService.isLoggedIn {
+                    showNewNote = true
+                } else {
+                    selectedTab = 2
+                }
+            }) {
+                HStack {
+                    Image(systemName: "plus")
+                        .foregroundColor(.black)
+                    Text("Новая заметка")
+                        .foregroundColor(.black)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .cornerRadius(20)
+            }
+        }
+        .padding(.bottom, 8)
     }
 }
 
@@ -274,6 +301,12 @@ struct ProfileView: View {
                                     .foregroundColor(Theme.header)
                                     .padding(.horizontal)
                                 
+                                //                                ForEach(Array(userNotes.enumerated()), id: \.element.id) { index, _ in
+                                //                                    NoteCard(note: &notesManager.notes[index],
+                                //                                             savedNotes: .constant(userNotes),
+                                //                                             notesManager: notesManager,
+                                //                                             currentUsername: authService.username ?? "Неизвестный пользователь").contentShape(Rectangle())
+                                //                                }
                                 ForEach(userNotes) { note in
                                     NoteCard(note: note, savedNotes: .constant(userNotes), notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                 }

@@ -296,7 +296,7 @@ struct NoteCard: View {
             }
         }
         .sheet(isPresented: $showComments) {
-            CommentsView(note: note, notesManager: notesManager, currentUsername: currentUsername, savedNotes: $savedNotes)
+            CommentsView(note: &note, notesManager: notesManager, currentUsername: currentUsername, savedNotes: $savedNotes)
         }
     }
     
@@ -312,7 +312,7 @@ struct NoteCard: View {
 }
 
 struct CommentsView: View {
-    let note: Note
+    @State var note: Note
     @Environment(\.dismiss) private var dismiss
     @State private var newComment = ""
     @ObservedObject var notesManager: NotesManager
@@ -333,18 +333,22 @@ struct CommentsView: View {
         return note.commentsCount
     }
     
-    init(note: Note, notesManager: NotesManager, currentUsername: String, savedNotes: Binding<[Note]>) {
+    init(note: inout Note, notesManager: NotesManager, currentUsername: String, savedNotes: Binding<[Note]>) {
         self.note = note
         self.notesManager = notesManager
         self._currentUsername = State(initialValue: currentUsername)
         self._savedNotes = savedNotes
+        self.note.comments = getComments(id: note.id) ?? []
+        self.note.commentsCount = self.note.comments.count
     }
     
     private func updateSavedNote(with comment: Comment) {
         if let index = savedNotes.firstIndex(where: { $0.id == note.id }) {
             var updatedNote = savedNotes[index]
-            updatedNote.comments.insert(comment, at: 0)
-            updatedNote.commentsCount += 1
+//            updatedNote.comments.insert(comment, at: 0)
+            updatedNote.comments = getComments(id: note.id) ?? []
+            updatedNote.commentsCount = updatedNote.comments.count
+            
             savedNotes[index] = updatedNote
         }
     }
@@ -381,14 +385,24 @@ struct CommentsView: View {
                             let comment = Comment(
                                 id: 0,
 //                                author: currentUsername,
-                                author_id: "",
+                                author_id: UserDefaults.standard.string(forKey: "user_id") ?? "",
                                 created_at: Date(),
                                 updated_at: Date(),
-                                post_id: -1,
+                                post_id: note.id,
                                 text: newComment
                             )
-                            notesManager.addComment(to: note.id, comment: comment)
-                            updateSavedNote(with: comment)
+                            notesManager.addComment(to: &note, comment: comment)
+//                            if let index = $notesManager.notes.firstIndex(where: { $0.id == note.id }) {
+//                                var updatedNote = $notesManager.notes[index]
+//                                updatedNote.comments = getComments(id: updatedNote.id) ?? []
+//                                updatedNote.commentsCount = updatedNote.comments.count
+//                                notesManager.notes[index] = updatedNote
+//                            }
+                            if let index = notesManager.notes.firstIndex(where: { $0.id == note.id }) {
+                                notesManager.notes[index].comments = getComments(id: note.id) ?? []
+                                notesManager.notes[index].commentsCount = notesManager.notes[index].comments.count
+                            }
+//                            updateSavedNote(with: comment)
                             newComment = ""
                         }
                     }) {
@@ -549,19 +563,20 @@ struct AudioPlayerView: View {
 }
 
 #Preview {
-    NoteCard(
-        note: Note(
-            id: 0,
-            author: "Макс Пупкин",
-            date: Date(),
-            title: "Конспекты по кмзи от Пупки Лупкиной",
-            content: "Представляю вам свои гадкие конспекты по вышматы или не вышмату не знаб но не по кмзи точно",
-            hashtags: ["#матан", "#крипта", "#бип"],
-            isPrivate: false
+    var note = Note(
+        id: 0,
+        author: "Макс Пупкин",
+        date: Date(),
+        title: "Конспекты по кмзи от Пупки Лупкиной",
+        content: "Представляю вам свои гадкие конспекты по вышматы или не вышмату не знаб но не по кмзи точно",
+        hashtags: ["#матан", "#крипта", "#бип"],
+        isPrivate: false
 //            likesCount: 1,
 //            commentsCount: 0,
 //            like_id: -1
-        ),
+    )
+    NoteCard(
+        note: note,
         savedNotes: .constant([]),
         notesManager: NotesManager(),
         currentUsername: "Макс Пупкин"
