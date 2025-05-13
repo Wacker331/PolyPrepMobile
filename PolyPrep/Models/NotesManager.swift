@@ -27,6 +27,8 @@ class NotesManager: ObservableObject {
         // )
     ]
     
+    @Published var user_notes: [Note] = []
+    
     private var timer: Timer?
     
     init() {
@@ -74,7 +76,57 @@ class NotesManager: ObservableObject {
     }
     
     func getUserNotes(username: String) -> [Note] {
-        notes.filter { $0.author == username }
+        if (user_notes.isEmpty)
+        {
+            user_notes = fetchUserNotes()
+        }
+        return user_notes
+//        notes.filter { $0.author == username }
+    }
+    
+    func fetchUserNotes() -> [Note]
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.user_posts) else {
+            fatalError("Invalid URL")
+        }
+        
+        var request = URLRequest(url: url)
+        var Notes = [Note]()
+        
+        // 3. Добавляем заголовки
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "GET"
+        
+        guard let (data, _) = HandleNetwork(request) else {
+            return []
+        }
+        
+        do {
+            let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+            
+            if let posts = json
+            {
+                for post in posts {
+//                    let comments = getComments(id: post["id"] as! Int) ?? []
+                    Notes.append(
+                        Note(
+                            id: post["id"] as! Int,
+                            author: getUsername(id: post["author_id"] as! String),
+                            date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
+                            title: post["title"] as! String, content: post["text"] as! String,
+                            hashtags: post["hashtages"] as! [String],
+                            isPrivate: !(post["public"] as! Bool)
+                        )
+                     )
+                }
+                return Notes
+            }
+            
+        } catch {
+            print("🚨 JSON decoding error:", error.localizedDescription)
+        }
+        return []
     }
     
     func fetchNotes()

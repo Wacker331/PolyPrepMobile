@@ -268,9 +268,6 @@ struct ProfileView: View {
                                     Button("Выбрать фото") {
                                         showImagePicker = true
                                     }
-                                    Button("Обновить фото") {
-                                        userProfile.loadAvatar(authService.userInfo!.img_link)
-                                    }
                                     Button("Отмена", role: .cancel) { }
                                 }
                             }
@@ -278,8 +275,20 @@ struct ProfileView: View {
                             Text(authService.username ?? "User")
                                 .font(.title)
                                 .foregroundColor(Theme.header)
-                            Text("User Information")
-                                .foregroundColor(Theme.header)
+//                            Text("User Information")
+//                                .foregroundColor(Theme.header)
+                            
+                            Button(action: {
+                                userProfile.loadAvatar(authService.userInfo!.img_link)
+                                notesManager.user_notes.removeAll()
+                            }) {
+                                Text("Обновить")
+                                    .foregroundColor(.white)
+                                    .frame(width: 200, height: 50)
+                                    .background(Theme.accent)
+                                    .cornerRadius(10)
+                            }
+                            .buttonStyle(ScaleButtonStyle())
                             
                             Button(action: {
                                 authService.logout()
@@ -301,18 +310,11 @@ struct ProfileView: View {
                                     .font(.title2)
                                     .foregroundColor(Theme.header)
                                     .padding(.horizontal)
-                                
-                                //                                ForEach(Array(userNotes.enumerated()), id: \.element.id) { index, _ in
-                                //                                    NoteCard(note: &notesManager.notes[index],
-                                //                                             savedNotes: .constant(userNotes),
-                                //                                             notesManager: notesManager,
-                                //                                             currentUsername: authService.username ?? "Неизвестный пользователь").contentShape(Rectangle())
-                                //                                }
                                 ForEach(userNotes) { note in
                                     NoteCard(note: note, savedNotes: .constant(userNotes), notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                 }
                             }
-                            .padding(.top, 32)
+                            .padding(.top, 16)
                         }
                     }
                 }
