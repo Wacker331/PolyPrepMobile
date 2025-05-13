@@ -3,7 +3,8 @@ import AVFoundation
 
 struct NoteCard: View {
     @State /*private */var note: Note
-    @State private var isLiked = false
+    @State private var isLiked: Bool
+    @State private var isSaved: Bool
     @State private var isExpanded = false
     @State private var textHeight: CGFloat = 0
     @State private var hashtagColors: [Color]
@@ -12,15 +13,8 @@ struct NoteCard: View {
     @State private var showComments = false
     @State private var showDeleteAlert = false
     @State private var showLikeAlert = false
+    @State private var showSaveAlert = false
     var currentUsername: String
-    
-    // Используем computed property для синхронизации состояния лайка
-//    private var isLiked: Bool {
-//        if let savedNote = savedNotes.first(where: { $0.id == note.id }) {
-//            return savedNote.isLiked
-//        }
-//        return note.isLiked
-//    }
     
     private var likesCount: Int {
         if let savedNote = savedNotes.first(where: { $0.id == note.id }) {
@@ -49,6 +43,8 @@ struct NoteCard: View {
         self.notesManager = notesManager
         self.currentUsername = currentUsername
         self._hashtagColors = State(initialValue: Self.generateRandomColors(count: note.hashtags.count))
+        self.isLiked = note.isLiked
+        self.isSaved = note.isSaved
     }
     
     private static func generateRandomColors(count: Int) -> [Color] {
@@ -67,21 +63,17 @@ struct NoteCard: View {
         return brightness > 0.5 ? .black : .white
     }
     
-    private var isSaved: Bool {
-        savedNotes.contains(where: { $0.id == note.id })
-    }
-    
     private func toggleLike() {
         if isSaved {
             if let index = savedNotes.firstIndex(where: { $0.id == note.id }) {
-                var updatedNote = savedNotes[index]
+                let updatedNote = savedNotes[index]
                 updatedNote.isLiked.toggle()
                 updatedNote.likesCount += updatedNote.isLiked ? 1 : -1
                 savedNotes[index] = updatedNote
                 notesManager.updateNoteLikes(noteId: note.id, isLiked: updatedNote.isLiked, likesCount: updatedNote.likesCount)
             }
         } else {
-            var updatedNote = note
+            let updatedNote = note
             updatedNote.isLiked.toggle()
             updatedNote.likesCount += updatedNote.isLiked ? 1 : -1
             notesManager.updateNoteLikes(noteId: note.id, isLiked: updatedNote.isLiked, likesCount: updatedNote.likesCount)
@@ -92,7 +84,7 @@ struct NoteCard: View {
         if isSaved {
             savedNotes.removeAll(where: { $0.id == note.id })
         } else {
-            var updatedNote = note
+            let updatedNote = note
             updatedNote.isLiked = isLiked
             updatedNote.likesCount = likesCount
             updatedNote.comments = comments
@@ -137,14 +129,7 @@ struct NoteCard: View {
                                     .foregroundColor(.red)
                             }
                         }
-                        Button(action: {
-                            withAnimation {
-                                toggleSaveNote()
-                            }
-                        }) {
-                            Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                                .foregroundColor(isSaved ? .yellow : .black)
-                        }
+                        saveButton
                     }
                 }
             }
@@ -291,6 +276,41 @@ struct NoteCard: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Не удалось поставить/убрать лайк :(")
+        }
+    }
+    
+    private var saveButton: some View
+    {
+        Button(action: {
+            withAnimation {
+                toggleSaveNote()
+                if (!isSaved)
+                {
+                    // сохранить
+                    isSaved = note.SetFavourite()
+                    note.isSaved = isSaved
+                    // Если не поставился -> алерт
+                    showSaveAlert = !isSaved
+                }
+                else // если сохранено
+                {
+                    // удалить
+                    isSaved = !note.DelFavourite() // возращает true если удалили
+                    note.isSaved = isSaved
+                    // Если сохранение осталось -> алерт
+                    showSaveAlert = isSaved
+                }
+//                notesManager.notes.removeAll(where: { $0.id == note.id })
+//                notesManager.notes.append(notesManager.getNoteById(note.id)!)
+            }
+        }) {
+            Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                .foregroundColor(isSaved ? .yellow : .black)
+        }
+        .alert("Session expired", isPresented: $showLikeAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Не удалось сохранить/удалить пост :(")
         }
     }
     

@@ -34,7 +34,7 @@ class UserProfile: ObservableObject {
     }
     
     func loadAvatar(_ urlString: String) {
-            if (urlString != "" && self.avatarImage == nil)
+            if (urlString != "")
             {
                 self.avatarImage = NetworkLoadAvatar(urlString)
                 self.userInfo.img_link = urlString

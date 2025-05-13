@@ -27,13 +27,16 @@ class NotesManager: ObservableObject {
         // )
     ]
     
+    @Published var savedNotes: [Note] = []
+    
     @Published var user_notes: [Note] = []
     
     private var timer: Timer?
     
     init() {
         startScheduledNotesTimer()
-//        fetchNotes()
+        fetchNotes()
+        savedNotes = getFavourites()
     }
     
     deinit {
@@ -55,7 +58,7 @@ class NotesManager: ObservableObject {
             if note.isScheduled,
                let scheduledDate = note.scheduledDate,
                scheduledDate <= now {
-                var updatedNote = note
+                let updatedNote = note
                 updatedNote.isScheduled = false
                 updatedNote.isPrivate = false
                 updatedNote.scheduledDate = nil
@@ -75,13 +78,85 @@ class NotesManager: ObservableObject {
         notes.insert(note, at: 0)
     }
     
+    func updateFavourites()
+    {
+        savedNotes = getFavourites()
+    }
+    
+    private func getFavourites() -> [Note]
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.favourite) else {
+            fatalError("Invalid URL")
+        }
+        var request = URLRequest(url: url)
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "GET"
+        
+        guard let (data, response) = HandleNetwork(request) else {
+            return []
+        }
+        if response.statusCode != 200
+        { return [] }
+        
+        do {
+            let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+            
+            if let json = json {
+                var favourites: [Note] = []
+                for item in json {
+                    
+                    //                    let note = try Note(json: item)
+                    if let note = getNoteById(item["post_id"] as! Int)
+                    { favourites.append(note) }
+                }
+                return favourites
+            }
+            return []
+        } catch { return [] }
+        
+    }
+    
     func getUserNotes(username: String) -> [Note] {
         if (user_notes.isEmpty)
         {
             user_notes = fetchUserNotes()
         }
         return user_notes
-//        notes.filter { $0.author == username }
+        //        notes.filter { $0.author == username }
+    }
+    
+    func getNoteById(_ id: Int) -> Note?
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.post + "?id=" + String(id)) else {
+            fatalError("Invalid URL")
+        }
+        var request = URLRequest(url: url)
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "GET"
+        
+        guard let (data, response) = HandleNetwork(request) else {
+            return nil
+        }
+        if (response.statusCode != 200)
+        { return nil }
+        
+        do {
+            
+            if let post = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            {
+                return Note(
+                    id: post["id"] as! Int,
+                    author: getUsername(id: post["author_id"] as! String),
+                    date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
+                    title: post["title"] as! String, content: post["text"] as! String,
+                    hashtags: post["hashtages"] as! [String],
+                    isPrivate: !(post["public"] as! Bool)
+                )
+            }
+        } catch {return nil}
+        return nil
     }
     
     func fetchUserNotes() -> [Note]

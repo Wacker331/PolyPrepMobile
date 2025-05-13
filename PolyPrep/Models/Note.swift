@@ -63,10 +63,25 @@ class Note: Identifiable, Equatable {
         self.commentsCount = NetworkComments?.count ?? 0
         
         // from "/favourite" backend
-//        self.isSaved = isSaved ?? false
+        self.isSaved = CheckSaved(id: id)
         
         // from "/includes" backend
 //        self.attachments = attachments
+    }
+    
+    private func CheckSaved (id: Int) -> Bool
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.UserEndpoints.check_favourite + "?id=" + String(id)) else {
+            fatalError("Invalid URL")
+        }
+        var request = URLRequest(url: url)
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "GET"
+        
+        let (_, response) = HandleNetwork(request)!
+        
+        return response.statusCode == 200
     }
     
     func SetLike() -> Bool {
@@ -119,6 +134,60 @@ class Note: Identifiable, Equatable {
         let (_, response) = HandleNetwork(request)!
         like_id = -1
         likesCount = getLikes(id: id).count
+        
+        if response.statusCode == 200
+        {
+            return true
+        }
+        return false
+    }
+    
+    func SetFavourite() -> Bool
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.favourite) else {
+            fatalError("Invalid URL")
+        }
+        
+        var request = URLRequest(url: url)
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "POST"
+        
+        let requestBody: [String: Any] = [
+            "post_id": self.id
+            ]
+        
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            print("Failed to encode JSON")
+            return false
+        }
+        request.httpBody = jsonData
+        let (data, response) = HandleNetwork(request)!
+        
+        isSaved = response.statusCode == 200
+        
+        if response.statusCode == 200
+        {
+            return true
+        }
+        return false
+    }
+    
+    func DelFavourite() -> Bool
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.favourite + "?id=" + String(self.id)) else {
+            fatalError("Invalid URL")
+        }
+        
+        var request = URLRequest(url: url)
+        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+
+        request.httpMethod = "DELETE"
+        
+        let (_, response) = HandleNetwork(request)!
+        
+        isSaved = !(response.statusCode == 200)
         
         if response.statusCode == 200
         {

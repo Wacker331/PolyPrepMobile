@@ -30,13 +30,21 @@ class AuthService: ObservableObject {
         set { UserDefaults.standard.set(newValue?.timeIntervalSince1970, forKey: "token_expires") }
     }
     
-    private var profile_img_link: String? {
+    var profile_img_link: String? {
         get { UserDefaults.standard.string(forKey: "profile_img_link") }
         set { UserDefaults.standard.set(newValue, forKey: "profile_img_link") }
     }
     
     init() {
         isLoggedIn = RefreshToken(refresh_token: self.refreshToken ?? "")
+        if (isLoggedIn)
+        {
+            self.fetchUserInfo(token: self.accessToken ?? "")
+        }
+    }
+    
+    func updateUserInfo()
+    {
         if (isLoggedIn)
         {
             self.fetchUserInfo(token: self.accessToken ?? "")

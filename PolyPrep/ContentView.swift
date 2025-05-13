@@ -32,7 +32,7 @@ import AuthenticationServices
 struct ContentView: View {
     @StateObject private var authService = AuthService()
     @StateObject private var notesManager = NotesManager()
-    @State private var savedNotes: [Note] = []
+//    @State private var savedNotes: [Note] = []
     @State private var selectedTab = 0
     @State private var showNewNote = false
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
@@ -57,7 +57,7 @@ struct ContentView: View {
                                     //                                                 currentUsername: authService.username ?? "Неизвестный пользователь").contentShape(Rectangle())
                                     //                                    }
                                     ForEach(notesManager.notes) { note in
-                                        NoteCard(note: note, savedNotes: $savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
+                                        NoteCard(note: note, savedNotes: $notesManager.savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                             .contentShape(Rectangle())
                                     }
                                 }
@@ -140,8 +140,8 @@ struct ContentView: View {
                         //                                     notesManager: notesManager,
                         //                                     currentUsername: authService.username ?? "Неизвестный пользователь").contentShape(Rectangle())
                         //                        }
-                        ForEach(savedNotes) { note in
-                            NoteCard(note: note, savedNotes: $savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
+                        ForEach(notesManager.savedNotes) { note in
+                            NoteCard(note: note, savedNotes: $notesManager.savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                 .contentShape(Rectangle())
                         }
                     }
@@ -279,8 +279,10 @@ struct ProfileView: View {
 //                                .foregroundColor(Theme.header)
                             
                             Button(action: {
-                                userProfile.loadAvatar(authService.userInfo!.img_link)
+                                authService.updateUserInfo()
                                 notesManager.user_notes.removeAll()
+                                userProfile.loadAvatar((authService.profile_img_link ?? authService.userInfo?.img_link)!)
+                                notesManager.updateFavourites()
                             }) {
                                 Text("Обновить")
                                     .foregroundColor(.white)
