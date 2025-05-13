@@ -7,13 +7,19 @@ struct AuthResponse: Codable {
 //    let token_type: String
 }
 
-struct UserInfo: Codable {
+class UserInfo: Codable {
     let id: String
     let username: String
-    let img_link: String
+    var img_link: String
 //    let email: String
 //    let name: String
     // Добавьте другие поля, которые приходят с вашего бэкенда
+    init()
+    {
+        id = ""
+        username = ""
+        img_link = ""
+    }
 }
 
 struct AuthError: Codable {

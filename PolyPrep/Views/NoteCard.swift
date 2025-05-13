@@ -11,6 +11,7 @@ struct NoteCard: View {
     @ObservedObject var notesManager: NotesManager
     @State private var showComments = false
     @State private var showDeleteAlert = false
+    @State private var showLikeAlert = false
     var currentUsername: String
     
     // Используем computed property для синхронизации состояния лайка
@@ -260,15 +261,22 @@ struct NoteCard: View {
         // Кнопка лайка
         Button(action: {
             withAnimation {
-                isLiked.toggle()
+//                isLiked.toggle()
 //                likesCount += isLiked ? 1 : -1
-                if (isLiked)
+                // Если ещё не лайкнуто
+                if (!isLiked)
                 {
-                    note.SetLike()
+                    // Поставить лайк
+                    isLiked = note.SetLike()
+                    // Если не поставился -> алерт
+                    showLikeAlert = !isLiked
                 }
-                else
+                else // если лайкнуто
                 {
-                    note.DelLike()
+                    // убрать лайк
+                    isLiked = !note.DelLike() // возращает true если лайк убран
+                    // Если лайк остался -> алерт
+                    showLikeAlert = isLiked
                 }
             }
         }) {
@@ -278,6 +286,11 @@ struct NoteCard: View {
                 Text("\(likesCount)")
                     .foregroundColor(.black)
             }
+        }
+        .alert("Session expired", isPresented: $showLikeAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Не удалось поставить/убрать лайк :(")
         }
     }
     
@@ -318,6 +331,7 @@ struct CommentsView: View {
     @ObservedObject var notesManager: NotesManager
     @State private var currentUsername: String
     @Binding var savedNotes: [Note]
+    @State private var showSessionExpired = false
     
     private var currentComments: [Comment] {
         if let savedNote = savedNotes.first(where: { $0.id == note.id }) {
@@ -391,7 +405,7 @@ struct CommentsView: View {
                                 post_id: note.id,
                                 text: newComment
                             )
-                            notesManager.addComment(to: &note, comment: comment)
+                            showSessionExpired = !notesManager.addComment(to: &note, comment: comment)
 //                            if let index = $notesManager.notes.firstIndex(where: { $0.id == note.id }) {
 //                                var updatedNote = $notesManager.notes[index]
 //                                updatedNote.comments = getComments(id: updatedNote.id) ?? []
@@ -410,6 +424,11 @@ struct CommentsView: View {
                             .foregroundColor(.blue)
                     }
                     .disabled(newComment.isEmpty)
+                    .alert("Session expired", isPresented: $showSessionExpired) {
+                        Button("OK", role: .cancel) { }
+                    } message: {
+                        Text("Не удалось отправить комментарий :(")
+                    }
                 }
                 .padding()
             }

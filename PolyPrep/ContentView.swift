@@ -115,6 +115,7 @@ struct ContentView: View {
     {
         // Profile Tab
         NavigationView {
+//            ViewProfile
             ProfileView(authService: authService, notesManager: notesManager)
         }
         .tabItem {
@@ -217,7 +218,9 @@ struct ProfileView: View {
     init(authService: AuthService, notesManager: NotesManager) {
         self.authService = authService
         self.notesManager = notesManager
-        self._userProfile = StateObject(wrappedValue: UserProfile(username: authService.username ?? ""))
+        self._userProfile = StateObject(wrappedValue: UserProfile(userInfo: authService.userInfo ?? UserInfo()))
+//        self.userProfile.updateAvatar()
+//        self.userProfile = UserProfile(userInfo: authService.userInfo ?? UserInfo())
     }
     
     var userNotes: [Note] {
@@ -265,10 +268,8 @@ struct ProfileView: View {
                                     Button("Выбрать фото") {
                                         showImagePicker = true
                                     }
-                                    if userProfile.avatarImage != nil {
-                                        Button("Удалить фото", role: .destructive) {
-                                            userProfile.deleteAvatar()
-                                        }
+                                    Button("Обновить фото") {
+                                        userProfile.loadAvatar(authService.userInfo!.img_link)
                                     }
                                     Button("Отмена", role: .cancel) { }
                                 }
@@ -328,6 +329,7 @@ struct ProfileView: View {
                     .buttonStyle(ScaleButtonStyle())
                     Button(action: {
                         authService.register()
+                        authService.RefreshToken(refresh_token: UserDefaults.standard.string(forKey: "refresh_token") ?? "")
 //                        showSafari = true
                     }) {
                         Text("Регистрация")

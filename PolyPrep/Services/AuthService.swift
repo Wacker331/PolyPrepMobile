@@ -4,18 +4,6 @@ import SafariServices
 import WebKit
 import AuthenticationServices
 
-struct SafariView: UIViewControllerRepresentable {
-    let url: URL
-    
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        let safariVC = SFSafariViewController(url: url)
-        safariVC.preferredControlTintColor = .green // Цвет кнопок
-        return safariVC
-    }
-    
-    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
-}
-
 class AuthService: ObservableObject {
     @Published var isLoggedIn = false
     @Published var username: String?
@@ -31,9 +19,20 @@ class AuthService: ObservableObject {
         get { UserDefaults.standard.string(forKey: "refresh_token") }
         set { UserDefaults.standard.set(newValue, forKey: "refresh_token") }
     }
+    
     private var user_id: String? {
         get { UserDefaults.standard.string(forKey: "user_id") }
         set { UserDefaults.standard.set(newValue, forKey: "user_id") }
+    }
+    
+    private var token_expires: Date? {
+        get { Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: "token_expires") as TimeInterval) }
+        set { UserDefaults.standard.set(newValue?.timeIntervalSince1970, forKey: "token_expires") }
+    }
+    
+    private var profile_img_link: String? {
+        get { UserDefaults.standard.string(forKey: "profile_img_link") }
+        set { UserDefaults.standard.set(newValue, forKey: "profile_img_link") }
     }
     
     init() {
@@ -165,7 +164,7 @@ class AuthService: ObservableObject {
             } catch {
                 DispatchQueue.main.async {
                     self.error = error.localizedDescription
-                    print(self.error)
+                    print("ERROR: ", self.error ?? "unknown Error")
                 }
             }
         }.resume()
@@ -188,12 +187,13 @@ class AuthService: ObservableObject {
             }
             
             guard let data = data else { return }
-            print(String(data: data ?? Data(), encoding: .utf8) ?? "Нет данных")
+            print(String(data: data, encoding: .utf8) ?? "Нет данных")
             
             do {
                 let userInfo = try JSONDecoder().decode(UserInfo.self, from: data)
                 DispatchQueue.main.async {
                     self.userInfo = userInfo
+                    self.profile_img_link = userInfo.img_link
                     self.username = userInfo.username
                     self.isLoggedIn = true
                     self.user_id = userInfo.id
@@ -222,14 +222,21 @@ class AuthService: ObservableObject {
         
     }
     
+    func getExpTimeFromToken(_ token: String) -> Date? {
+        let parts = token.components(separatedBy: ".")
+        guard parts.count == 3 else { return nil }
+        
+        return Date(timeIntervalSince1970: decodeJWTPart(parts[1])?["exp"] as! TimeInterval)
+    }
+    
     func getUserIdFromToken(_ token: String) -> String? {
         let parts = token.components(separatedBy: ".")
         guard parts.count == 3 else { return nil }
         
-        return decodeJWTPart(parts[1])
+        return decodeJWTPart(parts[1])?["sub"] as? String
     }
 
-    private func decodeJWTPart(_ part: String) -> String? {
+    private func decodeJWTPart(_ part: String) -> [String: Any]? {
         // 1. Дополняем строку до длины, кратной 4
         var base64 = part
             .replacingOccurrences(of: "-", with: "+")
@@ -250,6 +257,6 @@ class AuthService: ObservableObject {
         }
         
         // 3. Извлекаем поле "sub"
-        return json["sub"] as? String
+        return json/*["sub"] as? String*/
     }
 }

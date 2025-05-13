@@ -31,7 +31,7 @@ class NotesManager: ObservableObject {
     
     init() {
         startScheduledNotesTimer()
-        fetchNotes()
+//        fetchNotes()
     }
     
     deinit {
@@ -191,7 +191,7 @@ class NotesManager: ObservableObject {
         }
     }
     
-    func NetworkAddComment(comment: Comment, note: inout Note)
+    func NetworkAddComment(comment: Comment, note: inout Note) -> Bool
     {
         guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.comment) else {
             fatalError("Invalid URL")
@@ -209,24 +209,30 @@ class NotesManager: ObservableObject {
         ]
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
             print("Failed to encode JSON")
-            return
+            return false
         }
         request.httpBody = jsonData
         
-        let (_, _) = HandleNetwork(request)!
+        let (_, response) = HandleNetwork(request)!
         
         note.comments = getComments(id: note.id) ?? []
         note.commentsCount = note.comments.count
+        
+        if response.statusCode == 200
+        {
+            return true
+        }
+        return false
     }
     
-    func addComment(to note: inout Note, comment: Comment) {
+    func addComment(to note: inout Note, comment: Comment) -> Bool {
 //        if let index = notes.firstIndex(where: { $0.id == noteId }) {
 //            var updatedNote = notes[index]
 //            updatedNote.comments.insert(comment, at: 0)
 //            updatedNote.commentsCount += 1
 //            notes[index] = updatedNote
 //        }
-        NetworkAddComment(comment: comment, note: &note)
+        return NetworkAddComment(comment: comment, note: &note)
     }
     
     func formatCount(_ count: Int) -> String {

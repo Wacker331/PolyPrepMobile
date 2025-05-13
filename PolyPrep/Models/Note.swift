@@ -69,83 +69,62 @@ class Note: Identifiable, Equatable {
 //        self.attachments = attachments
     }
     
-    func SetLike() {
+    func SetLike() -> Bool {
         guard let url = URL(string: APIConstants.baseURL + "/like") else {
             fatalError("Invalid URL")
         }
         
-        // 2. Создаем URLRequest
         var request = URLRequest(url: url)
         let accessToken = UserDefaults.standard.string(forKey: "access_token")
 
-        // 3. Добавляем заголовки
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-//        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
 
-        // 4. Настраиваем метод (GET по умолчанию)
-        request.httpMethod = "POST" // Можно изменить на POST/PUT и т.д.
+        request.httpMethod = "POST"
         let requestBody: [String: Any] = [
             "post_id": self.id
             ]
         
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-                print("Failed to encode JSON")
-                return
-            }
+            print("Failed to encode JSON")
+            return false
+        }
         request.httpBody = jsonData
-        let (data, _) = HandleNetwork(request)!
+        let (data, response) = HandleNetwork(request)!
         
         var json: [String: Any] = [:]
         do { json = try (JSONSerialization.jsonObject(with: data) as? [String: Any])! }
-        catch { return }
+        catch { return false }
         self.like_id = json["like_id"] as? Int ?? -1
         likesCount = getLikes(id: id).count
-//        URLSession.shared.dataTask(with: request){ data, response, error in
-//        
-//            guard let httpResponse = response as? HTTPURLResponse else {
-//                    print( NSError(domain: "Invalid response", code: 0))
-//                return
-//                }
-//            print("Status code:", httpResponse.statusCode)
-//            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
-//            
-//            let json = try! JSONSerialization.jsonObject(with: data!) as? [String: Any]
-//            
-//        }.resume()
         
+        if response.statusCode == 200
+        {
+            return true
+        }
+        return false
     }
     
-    func DelLike() {
+    func DelLike() -> Bool {
         guard let url = URL(string: APIConstants.baseURL + "/like" + "?id=" + String(self.like_id)) else {
             fatalError("Invalid URL")
         }
         
-        // 2. Создаем URLRequest
         var request = URLRequest(url: url)
         let accessToken = UserDefaults.standard.string(forKey: "access_token")
 
-        // 3. Добавляем заголовки
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-//        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
 
-        // 4. Настраиваем метод (GET по умолчанию)
-        request.httpMethod = "DELETE" // Можно изменить на POST/PUT и т.д.
+        request.httpMethod = "DELETE"
         
-        let (_, _) = HandleNetwork(request)!
+        let (_, response) = HandleNetwork(request)!
         like_id = -1
         likesCount = getLikes(id: id).count
-//        URLSession.shared.dataTask(with: request){ data, response, error in
-//        
-//            guard let httpResponse = response as? HTTPURLResponse else {
-//                    print( NSError(domain: "Invalid response", code: 0))
-//                return
-//                }
-//            print("Status code:", httpResponse.statusCode)
-//            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
-//            
-//        }.resume()
+        
+        if response.statusCode == 200
+        {
+            return true
+        }
+        return false
     }
 
     var isPrivate: Bool = false
