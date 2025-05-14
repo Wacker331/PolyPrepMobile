@@ -35,6 +35,7 @@ class NotesManager: ObservableObject {
     
     init() {
         startScheduledNotesTimer()
+        notes.removeAll()
         fetchNotes()
         savedNotes = getFavourites()
     }
@@ -75,7 +76,10 @@ class NotesManager: ObservableObject {
     
     func addNote(_ note: Note) {
         // Все заметки добавляются в начало списка
-        notes.insert(note, at: 0)
+//        notes.insert(note, at: 0)
+        if !notes.contains(where: { $0.id == note.id }) {
+            notes.insert(note, at: 0)
+        }
     }
     
     func updateFavourites()
@@ -207,9 +211,52 @@ class NotesManager: ObservableObject {
         return []
     }
     
-    func fetchNotes()
+    func searchNotes(_ searchText: String)
     {
         notes.removeAll()
+        
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.search + "?text=" + searchText + "&from=0&to=60") else {
+            fatalError("Invalid URL")
+        }
+        
+        guard let (data, _) = HandleNetwork(url) else {
+            return
+        }
+        
+        if let data = data
+        {
+            do {
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                
+                if let posts = json?["result"] as? [[String: Any]]
+                {
+                    for post in posts {
+                        addNote(
+                            Note(
+                                id: post["id"] as! Int,
+                                author: getUsername(id: post["author_id"] as! String),
+                                date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
+                                title: post["title"] as! String, content: post["text"] as! String,
+                                hashtags: post["hashtages"] as! [String],
+                                isPrivate: !(post["public"] as! Bool)
+                                //                            likesCount: getLikesCount(id: post["id"] as! Int),
+                                //                            commentsCount: comments.count,
+                                //                            like_id: -1,
+                                //                            comments: comments
+                            )
+                        )
+                    }
+                }
+                
+            } catch {
+                print("🚨 JSON decoding error:", error.localizedDescription)
+            }
+        }
+    }
+    
+    func fetchNotes()
+    {
+//        notes.removeAll()
         guard let url = URL(string: APIConstants.baseURL + "/post/random" + "?count=10") else {
             fatalError("Invalid URL")
         }

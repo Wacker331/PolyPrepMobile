@@ -39,7 +39,7 @@ func HandleNetwork(_ request: URLRequest) -> (Data, HTTPURLResponse)?
     return (tmp_data ?? Data(), tmp_response ?? HTTPURLResponse())
 }
 
-func HandleNetwork(_ url: URL) -> (Data?, HTTPURLResponse?)
+func HandleNetwork(_ url: URL) -> (Data?, HTTPURLResponse?)?
 {
     var tmp_data: Data?
     var tmp_response: HTTPURLResponse?
@@ -191,9 +191,12 @@ func getUsername(id: String) -> String {
 
 func CheckTokenValidity(_ token: inout String)
 {
-    if (((NetworkAuthService?.getExpTimeFromToken(token)!)!) < Date())
+    if let ExpTime = NetworkAuthService?.getExpTimeFromToken(token)
     {
-        return
+        if ((ExpTime) < Date())
+        {
+            return
+        }
     }
     _ = NetworkAuthService!.RefreshToken(refresh_token: NetworkAuthService?.refreshToken ?? "")
     token = NetworkAuthService!.accessToken ?? ""

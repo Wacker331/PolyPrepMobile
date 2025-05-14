@@ -28,7 +28,7 @@ class UserProfile: ObservableObject {
         guard let url = URL(string: urlString) else {
             fatalError("Invalid URL")
         }
-        let (data, _) = HandleNetwork(url)
+        let (data, _) = HandleNetwork(url)!
         
         return data
     }

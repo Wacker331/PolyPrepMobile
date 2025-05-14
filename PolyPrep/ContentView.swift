@@ -35,6 +35,7 @@ struct ContentView: View {
 //    @State private var savedNotes: [Note] = []
     @State private var selectedTab = 0
     @State private var showNewNote = false
+    @State private var showSearch = false
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
     
     init()
@@ -82,6 +83,12 @@ struct ContentView: View {
                         notesManager.addNote(mutableNote)
                     }, currentUsername: authService.username ?? "Неизвестный пользователь")
                 }
+                .sheet(isPresented: $showSearch)
+                {
+                    SearchView(onSearchButton: {searchLine in
+                        notesManager.searchNotes(searchLine)
+                    })
+                }
                 .tabItem {
                     Image(systemName: "safari.fill")
                     Text("Поиск")
@@ -95,20 +102,23 @@ struct ContentView: View {
             .accentColor(Theme.accent)
             
             // Верхняя черная полоска с названием
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(Theme.header)
-                    .frame(height: 60)
-                    .ignoresSafeArea(edges: .top)
-                
-                Text("PolyPrep <<")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(Theme.accent)
-                    .padding(.leading, 16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(height: 40)
-                    .background(Theme.header)
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Theme.header)
+                        .frame(height: 60)
+                        .ignoresSafeArea(edges: .top)
+                    
+                Button(action: { notesManager.fetchNotes() })
+                {
+                    Text("PolyPrep <<")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(Theme.accent)
+                        .padding(.leading, 16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: 40)
+                        .background(Theme.header)
+                }
             }
         }
         .edgesIgnoringSafeArea(.all)
@@ -172,7 +182,7 @@ struct ContentView: View {
             Button(action: {
                 // Действие для поиска
                 Task {
-                    notesManager.fetchNotes()
+                    showSearch = true
                 }
             }) {
                 HStack {
