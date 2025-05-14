@@ -54,7 +54,8 @@ class UserProfile: ObservableObject {
         }
         
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "POST"
         

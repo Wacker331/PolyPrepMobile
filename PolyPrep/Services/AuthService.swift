@@ -10,12 +10,12 @@ class AuthService: ObservableObject {
     @Published var error: String?
     @Published var userInfo: UserInfo?
     
-    private var accessToken: String? {
+    var accessToken: String? {
         get { UserDefaults.standard.string(forKey: "access_token") }
         set { UserDefaults.standard.set(newValue, forKey: "access_token") }
     }
     
-    private var refreshToken: String? {
+    var refreshToken: String? {
         get { UserDefaults.standard.string(forKey: "refresh_token") }
         set { UserDefaults.standard.set(newValue, forKey: "refresh_token") }
     }
@@ -41,6 +41,10 @@ class AuthService: ObservableObject {
         {
             self.fetchUserInfo(token: self.accessToken ?? "")
         }
+        else
+        {
+            self.logout()
+        }
     }
     
     func updateUserInfo()
@@ -55,7 +59,7 @@ class AuthService: ObservableObject {
     {
         guard let url = URL(string: APIConstants.baseURL + APIConstants.AuthEndpoints.refresh) else { return false }
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = "POST"
         
         let requestBody: [String: Any] = [
                 "refresh_token": refreshToken ?? NSNull()
@@ -266,5 +270,15 @@ class AuthService: ObservableObject {
         
         // 3. Извлекаем поле "sub"
         return json/*["sub"] as? String*/
+    }
+    
+    func CheckTokenValidity(_ token: inout String)
+    {
+        if (getExpTimeFromToken(token)! < Date())
+        {
+            return
+        }
+        _ = RefreshToken(refresh_token: self.refreshToken ?? "")
+        token = accessToken ?? ""
     }
 }

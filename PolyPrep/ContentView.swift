@@ -37,6 +37,11 @@ struct ContentView: View {
     @State private var showNewNote = false
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
     
+    init()
+    {
+        NetworkAuthService = authService
+    }
+    
     var body: some View {
         ZStack(alignment: .top) {
             // Основной контент
@@ -72,8 +77,9 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $showNewNote) {
                     NewNoteView(onNoteCreated: { newNote in
-                        notesManager.addNote(newNote)
-                        notesManager.UploadNote(Note: newNote)
+                        var mutableNote = newNote
+                        notesManager.UploadNote(Note: &mutableNote)
+                        notesManager.addNote(mutableNote)
                     }, currentUsername: authService.username ?? "Неизвестный пользователь")
                 }
                 .tabItem {

@@ -1,8 +1,9 @@
 import Foundation
 
 struct Attachment: Identifiable, Equatable {
-    let id = UUID()
+    let id = Int()
     let fileName: String
+//    let fileLink: String
     let fileType: String
     let fileData: Data
     

@@ -20,8 +20,8 @@ struct Comment: Identifiable, Equatable, Codable {
 }
 
 class Note: Identifiable, Equatable {
-    let id: Int
-    let author: String
+    var id: Int
+    var author: String
     let date: Date
     let title: String
     let content: String
@@ -75,7 +75,8 @@ class Note: Identifiable, Equatable {
             fatalError("Invalid URL")
         }
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
         
@@ -90,8 +91,8 @@ class Note: Identifiable, Equatable {
         }
         
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
-
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
 
         request.httpMethod = "POST"
@@ -125,8 +126,8 @@ class Note: Identifiable, Equatable {
         }
         
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
-
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
 
         request.httpMethod = "DELETE"
@@ -149,7 +150,8 @@ class Note: Identifiable, Equatable {
         }
         
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "POST"
         
@@ -180,7 +182,8 @@ class Note: Identifiable, Equatable {
         }
         
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
 
         request.httpMethod = "DELETE"

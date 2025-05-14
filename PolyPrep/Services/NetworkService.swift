@@ -8,6 +8,8 @@
 import Foundation
 import UIKit
 
+var NetworkAuthService: AuthService? = nil
+
 func HandleNetwork(_ request: URLRequest) -> (Data, HTTPURLResponse)?
 {
     var tmp_data: Data?
@@ -162,8 +164,8 @@ func getUsername(id: String) -> String {
 
     // 3. Добавляем заголовки
     request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
+//    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//    request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
 
     // 4. Настраиваем метод (GET по умолчанию)
     request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
@@ -185,4 +187,14 @@ func getUsername(id: String) -> String {
             }
     
     return "Неизвестный пользователь"
+}
+
+func CheckTokenValidity(_ token: inout String)
+{
+    if (((NetworkAuthService?.getExpTimeFromToken(token)!)!) < Date())
+    {
+        return
+    }
+    _ = NetworkAuthService!.RefreshToken(refresh_token: NetworkAuthService?.refreshToken ?? "")
+    token = NetworkAuthService!.accessToken ?? ""
 }

@@ -89,7 +89,8 @@ class NotesManager: ObservableObject {
             fatalError("Invalid URL")
         }
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
         
@@ -132,7 +133,8 @@ class NotesManager: ObservableObject {
             fatalError("Invalid URL")
         }
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
         
@@ -169,7 +171,8 @@ class NotesManager: ObservableObject {
         var Notes = [Note]()
         
         // 3. Добавляем заголовки
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
         
@@ -215,10 +218,11 @@ class NotesManager: ObservableObject {
         var request = URLRequest(url: url)
         
         // 3. Добавляем заголовки
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
+//        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+//        request.setValue("YourApp/1.0", forHTTPHeaderField: "User-Agent")
         request.httpMethod = "GET"
         
         //        let (data, _) = try! await URLSession.shared.data(for: request)
@@ -255,15 +259,15 @@ class NotesManager: ObservableObject {
         }
     }
     
-    func UploadNote(Note: Note) {
+    func UploadNote(Note: inout Note) {
         guard let url = URL(string: APIConstants.baseURL + "/post") else {
             fatalError("Invalid URL")
         }
         
         // 2. Создаем URLRequest
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
-
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         // 3. Добавляем заголовки
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
 //        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -285,16 +289,14 @@ class NotesManager: ObservableObject {
             }
         request.httpBody = jsonData
         
-//        URLSession.shared.dataTask(with: request){ data, response, error in
-//        
-//            guard let httpResponse = response as? HTTPURLResponse else {
-//                    print( NSError(domain: "Invalid response", code: 0))
-//                return
-//                }
-//            print("Status code:", httpResponse.statusCode)
-//            print("Response:", String(data: data ?? Data(), encoding: .utf8) ?? "")
-//        }.resume()
-        let (_, _) = HandleNetwork(request)!
+        let (data, _) = HandleNetwork(request)!
+        
+        do {
+            let post = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            
+            Note.id = post?["id"] as! Int
+//            Note.author = getUsername(id: post?["author_id"] as! String)
+        } catch {}
     }
 
     
@@ -325,8 +327,8 @@ class NotesManager: ObservableObject {
         }
         
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
-        
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "POST"
         
@@ -378,8 +380,8 @@ class NotesManager: ObservableObject {
         
         print("Network delete post: ", url.absoluteString)
         var request = URLRequest(url: url)
-        let accessToken = UserDefaults.standard.string(forKey: "access_token")
-        
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "DELETE"
         
