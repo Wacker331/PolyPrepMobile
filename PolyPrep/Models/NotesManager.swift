@@ -31,6 +31,8 @@ class NotesManager: ObservableObject {
     
     @Published var user_notes: [Note] = []
     
+    @StateObject var watchConnector = WatchConnector()
+    
     private var timer: Timer?
     
     init() {
@@ -38,6 +40,7 @@ class NotesManager: ObservableObject {
         notes.removeAll()
         fetchNotes()
         savedNotes = getFavourites()
+        watchConnector.sendNotesToWatch(notes: savedNotes)
     }
     
     deinit {
@@ -85,6 +88,7 @@ class NotesManager: ObservableObject {
     func updateFavourites()
     {
         savedNotes = getFavourites()
+        watchConnector.sendNotesToWatch(notes: savedNotes)
     }
     
     private func getFavourites() -> [Note]
