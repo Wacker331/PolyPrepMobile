@@ -193,7 +193,7 @@ func CheckTokenValidity(_ token: inout String)
 {
     if let ExpTime = NetworkAuthService?.getExpTimeFromToken(token)
     {
-        if ((ExpTime) < Date())
+        if ((ExpTime) > Date())
         {
             return
         }

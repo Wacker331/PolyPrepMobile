@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import PDFKit
 
 struct NoteCard: View {
     @State /*private */var note: Note
@@ -547,9 +548,21 @@ struct AttachmentPreviewView: View {
                     }
                 } else if attachment.fileType.lowercased().contains("audio") {
                     AudioPlayerView(data: attachment.fileData)
+                } else if attachment.fileType.lowercased().contains("pdf") {
+                    PDFUIView(data: attachment.fileData)
                 } else {
-                    Text("Предпросмотр недоступен")
-                        .foregroundColor(.gray)
+//                    let attributedString = try? AttributedString(markdown: String(data: attachment.fileData, encoding: .utf8) ?? "")
+                    if let text = String(data: attachment.fileData, encoding: .utf8) {
+                        ScrollView {
+                            Text(text)
+                                .font(.body)
+                                .padding()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        Text("Не удалось декодировать текст")
+                            .foregroundColor(.gray)
+                    }
                 }
             }
             .navigationTitle(attachment.fileName)
@@ -562,6 +575,45 @@ struct AttachmentPreviewView: View {
                 }
             }
         }
+    }
+}
+
+struct PDFKitView: UIViewRepresentable {
+
+    let pdfDocument: PDFDocument
+
+    init(showing pdfDoc: PDFDocument) {
+        self.pdfDocument = pdfDoc
+    }
+
+    //you could also have inits that take a URL or Data
+
+    func makeUIView(context: Context) -> PDFView {
+        let pdfView = PDFView()
+        pdfView.document = pdfDocument
+        pdfView.autoScales = true
+        return pdfView
+    }
+
+    func updateUIView(_ pdfView: PDFView, context: Context) {
+        pdfView.document = pdfDocument
+    }
+}
+
+struct PDFUIView: View {
+
+    let pdfDoc: PDFDocument
+
+    init(data: Data) {
+        //for the sake of example, we're going to assume
+        //you have a file Lipsum.pdf in your bundle
+//        let data: Data
+//        let url = Bundle.main.url(forResource: "Lipsum", withExtension: "pdf")!
+        pdfDoc = PDFDocument(data: data) ?? PDFDocument()
+    }
+
+    var body: some View {
+        PDFKitView(showing: pdfDoc)
     }
 }
 

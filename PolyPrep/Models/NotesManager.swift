@@ -112,8 +112,11 @@ class NotesManager: ObservableObject {
                 for item in json {
                     
                     //                    let note = try Note(json: item)
-                    if let note = getNoteById(item["post_id"] as! Int)
-                    { favourites.append(note) }
+                    if var note = getNoteById(item["post_id"] as! Int)
+                    {
+                        note.attachments = fetchIncludes(id: note.id)
+                        favourites.append(note)
+                    }
                 }
                 return favourites
             }
@@ -198,7 +201,8 @@ class NotesManager: ObservableObject {
                             date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
                             title: post["title"] as! String, content: post["text"] as! String,
                             hashtags: post["hashtages"] as! [String],
-                            isPrivate: !(post["public"] as! Bool)
+                            isPrivate: !(post["public"] as! Bool),
+                            attachments: fetchIncludes(id: post["id"] as! Int)
                         )
                      )
                 }
@@ -231,6 +235,7 @@ class NotesManager: ObservableObject {
                 if let posts = json?["result"] as? [[String: Any]]
                 {
                     for post in posts {
+                        
                         addNote(
                             Note(
                                 id: post["id"] as! Int,
@@ -238,11 +243,12 @@ class NotesManager: ObservableObject {
                                 date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
                                 title: post["title"] as! String, content: post["text"] as! String,
                                 hashtags: post["hashtages"] as! [String],
-                                isPrivate: !(post["public"] as! Bool)
+                                isPrivate: !(post["public"] as! Bool),
                                 //                            likesCount: getLikesCount(id: post["id"] as! Int),
                                 //                            commentsCount: comments.count,
                                 //                            like_id: -1,
                                 //                            comments: comments
+                                attachments: fetchIncludes(id: post["id"] as! Int)
                             )
                         )
                     }
@@ -289,13 +295,15 @@ class NotesManager: ObservableObject {
                             id: post["id"] as! Int,
                             author: getUsername(id: post["author_id"] as! String),
                             date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
-                            title: post["title"] as! String, content: post["text"] as! String,
+                            title: post["title"] as! String,
+                            content: post["text"] as! String,
                             hashtags: post["hashtages"] as! [String],
-                            isPrivate: !(post["public"] as! Bool)
+                            isPrivate: !(post["public"] as! Bool),
 //                            likesCount: getLikesCount(id: post["id"] as! Int),
 //                            commentsCount: comments.count,
 //                            like_id: -1,
 //                            comments: comments
+                            attachments: fetchIncludes(id: post["id"] as! Int)
                         )
                     )
                 }
@@ -304,6 +312,48 @@ class NotesManager: ObservableObject {
         } catch {
             print("🚨 JSON decoding error:", error.localizedDescription)
         }
+    }
+    
+    func LoadInclude(_ urlString: String) -> Data?
+    {
+        guard let url = URL(string: urlString) else {
+            fatalError("Invalid URL")
+        }
+        let (data, _) = HandleNetwork(url)!
+        
+        return data
+    }
+    
+    func fetchIncludes(id: Int) -> [Attachment]
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.includes +
+                            "?id=" + String(id)) else {
+            fatalError("Invalid URL")
+        }
+        var request = URLRequest(url: url)
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "GET"
+        
+        guard let (data, _) = HandleNetwork(request) else {
+            return []
+        }
+        var result = [Attachment]()
+        do {
+            if let attach = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+            {
+                for info in attach {
+                    let FileData = LoadInclude(info["link"] as! String) ?? Data()
+                    let tmp_attach = Attachment(id: info["id"] as! Int, filename: info["filename"] as! String, filedata: FileData)
+                    result.append(tmp_attach)
+                }
+            }
+            
+        } catch {
+            print("🚨 JSON decoding error:", error.localizedDescription)
+        }
+        return result
     }
     
     func UploadNote(Note: inout Note) {
@@ -344,8 +394,76 @@ class NotesManager: ObservableObject {
             Note.id = post?["id"] as! Int
 //            Note.author = getUsername(id: post?["author_id"] as! String)
         } catch {}
+        print("ATTACHMENTS!!!")
+        for attachment in Note.attachments {
+            UploadAttachment(attachment: attachment, note: Note)
+        }
     }
 
+    func UploadAttachment(attachment: Attachment, note: Note)
+    {
+        guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.includes +
+                            "?filename=" + attachment.fileName + "&post_id=" + String(note.id))
+        else {
+            fatalError("Invalid URL")
+        }
+        print("FILE: " + attachment.fileName)
+        var request = URLRequest(url: url)
+        var accessToken = UserDefaults.standard.string(forKey: "access_token")
+        CheckTokenValidity(&accessToken!)
+        request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
+        request.httpMethod = "POST"
+        
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        let httpBody = NSMutableData()
+        
+        // Добавляем изображение
+        httpBody.append("--\(boundary)\r\n".data(using: .utf8)!)
+        httpBody.append("Content-Type: multipart/form-data\r\n\r\n".data(using: .utf8)!)
+        httpBody.append(attachment.fileData)
+        httpBody.append("\r\n".data(using: .utf8)!)
+        
+        // Завершаем тело запроса
+        httpBody.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = httpBody as Data
+        
+//        var isUploading = true
+//        var uploadProgress: Double = 0
+        var errorMessage: String?
+        
+//        let session = URLSession(configuration: .default, delegate: UploadTaskDelegate(progress: $uploadProgress), delegateQueue: nil)
+                
+        URLSession.shared.dataTask(with: request) { data, response, error in
+                    DispatchQueue.main.async {
+//                        isUploading = false
+                        
+                        if let error = error {
+                            errorMessage = error.localizedDescription
+                            return
+                        }
+                        
+                        guard let httpResponse = response as? HTTPURLResponse else {
+                            errorMessage = "Неверный ответ сервера"
+                            return
+                        }
+                        
+                        if (200...299).contains(httpResponse.statusCode) {
+                            print("Файл успешно загружен!")
+                            errorMessage = nil
+                        } else {
+                            errorMessage = "Ошибка сервера: \(httpResponse.statusCode)"
+                            print(errorMessage!)
+                        }
+                        
+                        if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                            print("Ответ сервера:", responseString)
+                        }
+                    }
+                }.resume()
+    }
     
     func toggleLike(for noteId: Int) {
         if let index = notes.firstIndex(where: { $0.id == noteId }) {

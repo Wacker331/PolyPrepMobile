@@ -281,7 +281,8 @@ struct NewNoteView: View {
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             content: content.trimmingCharacters(in: .whitespacesAndNewlines),
             hashtags: hashtagsArray,
-            isPrivate: isPrivate || isScheduled // Отложенные заметки всегда приватные
+            isPrivate: isPrivate || isScheduled, // Отложенные заметки всегда приватные
+            attachments: attachments
         )
         onNoteCreated(newNote)
         dismiss()
@@ -344,9 +345,10 @@ struct ImagePicker: UIViewControllerRepresentable {
                         if let image = object as? UIImage,
                            let imageData = image.jpegData(compressionQuality: 0.8) {
                             let attachment = Attachment(
-                                fileName: "image_\(Date().timeIntervalSince1970).jpg",
-                                fileType: "image/jpeg",
-                                fileData: imageData
+//                                id: -1,
+                                filename: "image_\(Date().timeIntervalSince1970).jpg",
+                                //                                fileType: "image/jpeg",
+                                filedata: imageData
                             )
                             DispatchQueue.main.async {
                                 self?.parent.attachments.append(attachment)
@@ -390,9 +392,9 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 do {
                     let data = try Data(contentsOf: url)
                     let attachment = Attachment(
-                        fileName: url.lastPathComponent,
-                        fileType: url.pathExtension,
-                        fileData: data
+                        filename: url.lastPathComponent,
+                        //                        fileType: url.pathExtension,
+                        filedata: data
                     )
                     DispatchQueue.main.async {
                         self.parent.attachments.append(attachment)

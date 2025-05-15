@@ -32,7 +32,7 @@ class Note: Identifiable, Equatable {
     var isSaved: Bool = false
     var like_id: Int
     
-    init(id: Int, author: String, date: Date, title: String, content: String, hashtags: [String], isPrivate: Bool, isScheduled: Bool? = false, scheduledDate: Date? = nil /*, likesCount: Int, commentsCount: Int, isLiked: Bool, isSaved: Bool? = false, like_id: Int,comments: [Comment], attachments: [Attachment]*/) {
+    init(id: Int, author: String, date: Date, title: String, content: String, hashtags: [String], isPrivate: Bool, isScheduled: Bool? = false, scheduledDate: Date? = nil, /*likesCount: Int, commentsCount: Int, isLiked: Bool, isSaved: Bool? = false, like_id: Int,comments: [Comment],*/ attachments: [Attachment]? = []) {
         self.id = id
         self.author = author
         self.date = date
@@ -66,7 +66,8 @@ class Note: Identifiable, Equatable {
         self.isSaved = CheckSaved(id: id)
         
         // from "/includes" backend
-//        self.attachments = attachments
+        self.attachments = attachments ?? []
+        
     }
     
     private func CheckSaved (id: Int) -> Bool
