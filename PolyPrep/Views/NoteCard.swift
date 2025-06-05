@@ -373,16 +373,25 @@ struct CommentsView: View {
         self.notesManager = notesManager
         self._currentUsername = State(initialValue: currentUsername)
         self._savedNotes = savedNotes
-        self.note.comments = getComments(id: note.id) ?? []
-        self.note.commentsCount = self.note.comments.count
+//        self.note.comments = getComments(id: note.id) ?? []
+//        self.note.commentsCount = self.note.comments.count
+//        getComments(id: note.id) {   newComments in
+//            note.comments = newComments
+//            note.commentsCount = newComments.count
+//        }
     }
     
     private func updateSavedNote(with comment: Comment) {
         if let index = savedNotes.firstIndex(where: { $0.id == note.id }) {
             var updatedNote = savedNotes[index]
 //            updatedNote.comments.insert(comment, at: 0)
-            updatedNote.comments = getComments(id: note.id) ?? []
-            updatedNote.commentsCount = updatedNote.comments.count
+//            updatedNote.comments = getComments(id: note.id) ?? []
+            getComments(id: note.id) {   newComments in
+                updatedNote.comments = newComments
+                updatedNote.commentsCount = newComments.count
+            }
+//            updatedNote.commentsCount = updatedNote.comments.count
+            
             
             savedNotes[index] = updatedNote
         }
@@ -427,6 +436,10 @@ struct CommentsView: View {
                                 text: newComment
                             )
                             showSessionExpired = !notesManager.addComment(to: &note, comment: comment)
+                            getComments(id: note.id) {   newComments in
+                                note.comments = newComments
+                            }
+                            note.commentsCount = note.comments.count
 //                            if let index = $notesManager.notes.firstIndex(where: { $0.id == note.id }) {
 //                                var updatedNote = $notesManager.notes[index]
 //                                updatedNote.comments = getComments(id: updatedNote.id) ?? []
@@ -434,8 +447,13 @@ struct CommentsView: View {
 //                                notesManager.notes[index] = updatedNote
 //                            }
                             if let index = notesManager.notes.firstIndex(where: { $0.id == note.id }) {
-                                notesManager.notes[index].comments = getComments(id: note.id) ?? []
-                                notesManager.notes[index].commentsCount = notesManager.notes[index].comments.count
+                                
+//                                notesManager.notes[index].comments = getComments(id: note.id, completion: <#([Comment]) -> Void#>) ?? []
+//                                notesManager.notes[index].commentsCount = notesManager.notes[index].comments.count
+                                getComments(id: note.id) {   newComments in
+                                    notesManager.notes[index].comments = newComments
+                                    notesManager.notes[index].commentsCount = newComments.count
+                                }
                             }
 //                            updateSavedNote(with: comment)
                             newComment = ""
@@ -560,7 +578,7 @@ struct AttachmentPreviewView: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        Text("Не удалось декодировать текст")
+                        Text("Не удалось открыть файл")
                             .foregroundColor(.gray)
                     }
                 }

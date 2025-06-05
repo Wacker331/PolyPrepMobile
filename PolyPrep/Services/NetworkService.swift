@@ -116,41 +116,36 @@ func getLikes(id: Int) -> [[String: Any]] {
     return []
 }
 
-func getComments(id: Int) -> [Comment]? {
+func getComments(id: Int, completion: @escaping ([Comment]) -> Void) {
     guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.comment + "?id=" + String(id)) else {
         fatalError("Invalid URL")
     }
     
-    // 2. Создаем URLRequest
     var request = URLRequest(url: url)
-    
-    // 3. Добавляем заголовки
-    
-    // 4. Настраиваем метод (GET по умолчанию)
-    request.httpMethod = "GET" // Можно изменить на POST/PUT и т.д.
+    request.httpMethod = "GET"
     
     //        let (data, _) = try! await URLSession.shared.data(for: request)
-    guard let (data, _) = HandleNetwork(request) else { return nil}
+//    var result: [Comment]? = []
     
-    do {
-        // 1. Декодируем JSON в словарь
-//        let jsonData = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .secondsSince1970
-        let comments = try decoder.decode([Comment].self, from: data)
-        print("COMMENTS: ", comments)
-        return comments
-////        // 2. Получаем значение по ключу
-//        if let count = json?.count as? Int {
-//            print("Comments", count)
-////            return count
-//        }
-//        else
-//        { print("Can't get comments...") }
-    } catch {
-        print("🚨 JSON decoding error:", error.localizedDescription)
+    DispatchQueue.global(qos: .background).async {
+        guard let (data, _) = HandleNetwork(request) else { return }
+        
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .secondsSince1970
+            let comments = try decoder.decode([Comment].self, from: data)
+            print("COMMENTS: ", comments)
+//            return comments
+            DispatchQueue.main.async {
+//                result = comments
+                completion(comments)
+            }
+        } catch {
+            print("🚨 JSON decoding error:", error.localizedDescription)
+        }
+//        return nil
     }
-    return nil
+//    return result
 }
 
 func getUsername(id: String) -> String {

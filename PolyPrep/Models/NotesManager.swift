@@ -33,10 +33,10 @@ class NotesManager: ObservableObject {
     
     @StateObject var watchConnector = WatchConnector()
     
-    private var timer: Timer?
+//    private var timer: Timer?
     
     init() {
-        startScheduledNotesTimer()
+//        startScheduledNotesTimer()
         notes.removeAll()
         fetchNotes()
         savedNotes = getFavourites()
@@ -44,44 +44,45 @@ class NotesManager: ObservableObject {
     }
     
     deinit {
-        timer?.invalidate()
+//        timer?.invalidate()
     }
     
-    private func startScheduledNotesTimer() {
-        // Проверяем отложенные заметки каждую минуту
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            self?.checkScheduledNotes()
-        }
-    }
-    
-    private func checkScheduledNotes() {
-        let now = Date()
-        var updatedNotes = notes
-        
-        for (index, note) in notes.enumerated() {
-            if note.isScheduled,
-               let scheduledDate = note.scheduledDate,
-               scheduledDate <= now {
-                let updatedNote = note
-                updatedNote.isScheduled = false
-                updatedNote.isPrivate = false
-                updatedNote.scheduledDate = nil
-                updatedNotes[index] = updatedNote
-            }
-        }
-        
-        if updatedNotes != notes {
-            DispatchQueue.main.async { [weak self] in
-                self?.notes = updatedNotes
-            }
-        }
-    }
+//    private func startScheduledNotesTimer() {
+//        // Проверяем отложенные заметки каждую минуту
+//        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+//            self?.checkScheduledNotes()
+//        }
+//    }
+//    
+//    private func checkScheduledNotes() {
+//        let now = Date()
+//        var updatedNotes = notes
+//        
+//        for (index, note) in notes.enumerated() {
+//            if note.isScheduled,
+//               let scheduledDate = note.scheduledDate,
+//               scheduledDate <= now {
+//                let updatedNote = note
+//                updatedNote.isScheduled = false
+//                updatedNote.isPrivate = false
+//                updatedNote.scheduledDate = nil
+//                updatedNotes[index] = updatedNote
+//            }
+//        }
+//        
+//        if updatedNotes != notes {
+//            DispatchQueue.main.async { [weak self] in
+//                self?.notes = updatedNotes
+//            }
+//        }
+//    }
     
     func addNote(_ note: Note) {
         // Все заметки добавляются в начало списка
 //        notes.insert(note, at: 0)
         if !notes.contains(where: { $0.id == note.id }) {
-            notes.insert(note, at: 0)
+//            notes.insert(note, at: 0)
+            notes.append(note)
         }
     }
     
@@ -102,31 +103,38 @@ class NotesManager: ObservableObject {
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
         
-        guard let (data, response) = HandleNetwork(request) else {
-            return []
-        }
-        if response.statusCode != 200
-        { return [] }
+        var result: [Note] = []
         
-        do {
-            let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-            
-            if let json = json {
-                var favourites: [Note] = []
-                for item in json {
-                    
-                    //                    let note = try Note(json: item)
-                    if var note = getNoteById(item["post_id"] as! Int)
-                    {
-                        note.attachments = fetchIncludes(id: note.id)
-                        favourites.append(note)
-                    }
-                }
-                return favourites
+        DispatchQueue.global(qos: .background).async {
+            guard let (data, response) = HandleNetwork(request) else {
+                return
             }
-            return []
-        } catch { return [] }
-        
+            if response.statusCode != 200
+            { return }
+            
+            do {
+                let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+                
+                if let json = json {
+                    var favourites: [Note] = []
+                    for item in json {
+                        
+                        //                    let note = try Note(json: item)
+                        if let note = self.getNoteById(item["post_id"] as! Int)
+                        {
+                            note.attachments = self.fetchIncludes(id: note.id)
+                            favourites.append(note)
+                        }
+                    }
+                    DispatchQueue.main.async {
+                        result = favourites
+                    }
+//                    return favourites
+                }
+                return
+            } catch { return }
+        }
+        return result
     }
     
     func getUserNotes(username: String) -> [Note] {
@@ -283,38 +291,41 @@ class NotesManager: ObservableObject {
         request.httpMethod = "GET"
         
         //        let (data, _) = try! await URLSession.shared.data(for: request)
-        guard let (data, _) = HandleNetwork(request) else {
-            return
-        }
-        
-        do {
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        DispatchQueue.global(qos: .background).async {
             
-            if let posts = json?["posts"] as? [[String: Any]]
-            {
-                for post in posts {
-//                    let comments = getComments(id: post["id"] as! Int) ?? []
-                    addNote(
-                        Note(
-                            id: post["id"] as! Int,
-                            author: getUsername(id: post["author_id"] as! String),
-                            date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
-                            title: post["title"] as! String,
-                            content: post["text"] as! String,
-                            hashtags: post["hashtages"] as! [String],
-                            isPrivate: !(post["public"] as! Bool),
-//                            likesCount: getLikesCount(id: post["id"] as! Int),
-//                            commentsCount: comments.count,
-//                            like_id: -1,
-//                            comments: comments
-                            attachments: fetchIncludes(id: post["id"] as! Int)
-                        )
-                    )
-                }
+            guard let (data, _) = HandleNetwork(request) else {
+                return
             }
             
-        } catch {
-            print("🚨 JSON decoding error:", error.localizedDescription)
+            do {
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                
+                if let posts = json?["posts"] as? [[String: Any]]
+                {
+                    for post in posts {
+                        //                    let comments = getComments(id: post["id"] as! Int) ?? []
+                        self.addNote(
+                            Note(
+                                id: post["id"] as! Int,
+                                author: getUsername(id: post["author_id"] as! String),
+                                date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
+                                title: post["title"] as! String,
+                                content: post["text"] as! String,
+                                hashtags: post["hashtages"] as! [String],
+                                isPrivate: !(post["public"] as! Bool),
+                                //                            likesCount: getLikesCount(id: post["id"] as! Int),
+                                //                            commentsCount: comments.count,
+                                //                            like_id: -1,
+                                //                            comments: comments
+                                attachments: self.fetchIncludes(id: post["id"] as! Int)
+                            )
+                        )
+                    }
+                }
+                
+            } catch {
+                print("🚨 JSON decoding error:", error.localizedDescription)
+            }
         }
     }
     
@@ -513,9 +524,6 @@ class NotesManager: ObservableObject {
         
         let (_, response) = HandleNetwork(request)!
         
-        note.comments = getComments(id: note.id) ?? []
-        note.commentsCount = note.comments.count
-        
         if response.statusCode == 200
         {
             return true
@@ -530,7 +538,8 @@ class NotesManager: ObservableObject {
 //            updatedNote.commentsCount += 1
 //            notes[index] = updatedNote
 //        }
-        return NetworkAddComment(comment: comment, note: &note)
+        let result = NetworkAddComment(comment: comment, note: &note)
+        return result
     }
     
     func formatCount(_ count: Int) -> String {

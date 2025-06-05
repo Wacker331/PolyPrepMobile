@@ -19,7 +19,7 @@ struct Comment: Identifiable, Equatable, Codable {
     }
 }
 
-class Note: Identifiable, Equatable {
+class Note: Identifiable, Equatable, ObservableObject {
     var id: Int
     var author: String
     let date: Date
@@ -27,7 +27,7 @@ class Note: Identifiable, Equatable {
     let content: String
     let hashtags: [String]
     var likesCount: Int
-    var commentsCount: Int
+    @Published var commentsCount: Int = 0
     var isLiked: Bool = false
     var isSaved: Bool = false
     var like_id: Int
@@ -58,9 +58,14 @@ class Note: Identifiable, Equatable {
         }
         
         // from "/comment" backend
-        let NetworkComments = getComments(id: id)
-        self.comments = NetworkComments ?? []
-        self.commentsCount = NetworkComments?.count ?? 0
+//        let NetworkComments = getComments(id: id)
+        getComments(id: id) {   newComments in
+            self.comments = newComments
+            self.commentsCount = newComments.count
+        }
+//        self.commentsCount = self.comments.count
+//        self.comments = NetworkComments ?? []
+//        self.commentsCount = NetworkComments?.count ?? 0
         
         // from "/favourite" backend
         self.isSaved = CheckSaved(id: id)
@@ -203,7 +208,7 @@ class Note: Identifiable, Equatable {
     var isPrivate: Bool = false
     var isScheduled: Bool = false
     var scheduledDate: Date?
-    var comments: [Comment] = []
+    @Published var comments: [Comment] = []
     var attachments: [Attachment] = []
     
     static func == (lhs: Note, rhs: Note) -> Bool {
