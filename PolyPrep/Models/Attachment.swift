@@ -3,15 +3,16 @@ import Foundation
 struct Attachment: Identifiable, Equatable {
     var id: Int = Int()
     let fileName: String
-//    let fileLink: String
+    let fileLink: String
     let fileType: String
-    let fileData: Data
+    var fileData: Data
     
-    init(id: Int? = -1, filename: String, filedata: Data)
+    init(id: Int? = -1, filename: String, filelink: String, filedata: Data)
     {
         self.id = id ?? -1
         self.fileName = filename
         self.fileType = Attachment.defineType(name: filename)
+        self.fileLink = filelink
         self.fileData = filedata
     }
     

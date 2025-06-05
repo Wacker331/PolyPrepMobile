@@ -233,8 +233,8 @@ struct NoteCard: View {
     }
     
     private func shareNote() {
-        let noteText = "\(note.title)\n\(note.content)"
-        let activityVC = UIActivityViewController(activityItems: [noteText], applicationActivities: nil)
+        let shareURL = URL(string: APIConstants.FrontEndURL + "/post/view/" + String(note.id))!
+        let activityVC = UIActivityViewController(activityItems: [shareURL], applicationActivities: nil)
         
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first,
@@ -520,6 +520,7 @@ struct AttachmentView: View {
                     .foregroundColor(.black)
                 Text(attachment.fileName)
                     .foregroundColor(.black)
+                    .lineLimit(2)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .foregroundColor(.gray)
@@ -552,8 +553,13 @@ struct AttachmentView: View {
 }
 
 struct AttachmentPreviewView: View {
-    let attachment: Attachment
+    var attachment: Attachment
     @Environment(\.dismiss) private var dismiss
+    
+    init(attachment: Attachment) {
+        self.attachment = attachment
+        self.attachment.fileData = LoadInclude(attachment.fileLink) ?? Data()
+    }
     
     var body: some View {
         NavigationView {

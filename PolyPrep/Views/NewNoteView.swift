@@ -348,6 +348,7 @@ struct ImagePicker: UIViewControllerRepresentable {
 //                                id: -1,
                                 filename: "image_\(Date().timeIntervalSince1970).jpg",
                                 //                                fileType: "image/jpeg",
+                                filelink: "",
                                 filedata: imageData
                             )
                             DispatchQueue.main.async {
@@ -394,6 +395,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
                     let attachment = Attachment(
                         filename: url.lastPathComponent,
                         //                        fileType: url.pathExtension,
+                        filelink: "",
                         filedata: data
                     )
                     DispatchQueue.main.async {

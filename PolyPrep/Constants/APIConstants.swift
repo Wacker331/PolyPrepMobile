@@ -2,6 +2,7 @@ import Foundation
 
 enum APIConstants {
     static var baseURL = UserDefaults.standard.string(forKey: "BackEndURL") ?? "http://90.156.170.153:8081/api/v1";
+    static var FrontEndURL = UserDefaults.standard.string(forKey: "FrontEndURL") ?? "http://90.156.170.153:3001";
     static var KeyCloakURL = UserDefaults.standard.string(forKey: "KeyCloakURL") ?? "http://90.156.170.153:8091";
     
     enum AuthEndpoints {

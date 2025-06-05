@@ -116,6 +116,16 @@ func getLikes(id: Int) -> [[String: Any]] {
     return []
 }
 
+func LoadInclude(_ urlString: String) -> Data?
+{
+    guard let url = URL(string: urlString) else {
+        fatalError("Invalid URL")
+    }
+    let (data, _) = HandleNetwork(url)!
+    
+    return data
+}
+
 func getComments(id: Int, completion: @escaping ([Comment]) -> Void) {
     guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.comment + "?id=" + String(id)) else {
         fatalError("Invalid URL")

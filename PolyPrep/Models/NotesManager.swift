@@ -329,16 +329,6 @@ class NotesManager: ObservableObject {
         }
     }
     
-    func LoadInclude(_ urlString: String) -> Data?
-    {
-        guard let url = URL(string: urlString) else {
-            fatalError("Invalid URL")
-        }
-        let (data, _) = HandleNetwork(url)!
-        
-        return data
-    }
-    
     func fetchIncludes(id: Int) -> [Attachment]
     {
         guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.includes +
@@ -359,8 +349,9 @@ class NotesManager: ObservableObject {
             if let attach = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
             {
                 for info in attach {
-                    let FileData = LoadInclude(info["link"] as! String) ?? Data()
-                    let tmp_attach = Attachment(id: info["id"] as! Int, filename: info["filename"] as! String, filedata: FileData)
+//                    let FileData = LoadInclude(info["link"] as! String) ?? Data()
+                    let tmp_attach = Attachment(id: info["id"] as! Int, filename: info["filename"] as! String,
+                                                filelink: info["link"] as! String, filedata: Data())
                     result.append(tmp_attach)
                 }
             }

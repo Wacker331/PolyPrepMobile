@@ -56,12 +56,7 @@ struct ContentView: View {
                             // Список заметок
                             ScrollView {
                                 LazyVStack(spacing: 16) {
-                                    //                                    ForEach(Array(notesManager.notes.enumerated()), id: \.element.id) { index, _ in
-                                    //                                        NoteCard(note: &notesManager.notes[index],
-                                    //                                                 savedNotes: $savedNotes,
-                                    //                                                 notesManager: notesManager,
-                                    //                                                 currentUsername: authService.username ?? "Неизвестный пользователь").contentShape(Rectangle())
-                                    //                                    }
+                                   
                                     ForEach(notesManager.notes) { note in
                                         NoteCard(note: note, savedNotes: $notesManager.savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                             .contentShape(Rectangle())
@@ -69,6 +64,17 @@ struct ContentView: View {
                                 }
                                 .padding(.top, 62)
                                 .padding(.bottom, 16)
+                                Button(action: {
+                                    notesManager.fetchNotes()
+                                }) {
+                                    Text("Загрузить ещё...")
+                                        .foregroundColor(.black)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 12)
+                                        .background(Color.white)
+                                        .cornerRadius(20)
+                                }
+                                .padding(.bottom, 20)
                             }
                             .scrollDismissesKeyboard(.immediately)
                             
@@ -108,8 +114,8 @@ struct ContentView: View {
                         .frame(height: 60)
                         .ignoresSafeArea(edges: .top)
                     
-                Button(action: { notesManager.fetchNotes() })
-                {
+//                Button(action: { notesManager.fetchNotes() })
+//                {
                     Text("PolyPrep <<")
                         .font(.title2)
                         .fontWeight(.bold)
@@ -118,7 +124,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(height: 40)
                         .background(Theme.header)
-                }
+//                }
             }
         }
         .edgesIgnoringSafeArea(.all)
@@ -341,18 +347,6 @@ struct ProfileView: View {
                 VStack(spacing: 20) {
                     NavigationLink(destination: SettingsView()) {
                         Text("Настройки")
-                            .foregroundColor(.white)
-                            .frame(width: 200, height: 50)
-                            .background(Theme.accent)
-                            .cornerRadius(10)
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    Button(action: {
-                        authService.register()
-                        authService.RefreshToken(refresh_token: UserDefaults.standard.string(forKey: "refresh_token") ?? "")
-//                        showSafari = true
-                    }) {
-                        Text("Регистрация")
                             .foregroundColor(.white)
                             .frame(width: 200, height: 50)
                             .background(Theme.accent)
