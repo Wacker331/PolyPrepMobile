@@ -138,7 +138,7 @@ struct ContentView: View {
         // Profile Tab
         NavigationView {
 //            ViewProfile
-            ProfileView(authService: authService, notesManager: notesManager)
+            ProfileView(authService: authService, notesManager: notesManager, savedNotes: $notesManager.savedNotes)
         }
         .tabItem {
             Image(systemName: "person.fill")
@@ -230,6 +230,7 @@ struct ContentView: View {
 struct ProfileView: View {
     @ObservedObject var authService: AuthService
     @ObservedObject var notesManager: NotesManager
+    @Binding var savedNotes: [Note]
     // @State private var showSafari = false
     @State private var startingWebAuthenticationSession = false
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
@@ -237,10 +238,11 @@ struct ProfileView: View {
     @State private var showImagePicker = false
     @State private var showAvatarMenu = false
     
-    init(authService: AuthService, notesManager: NotesManager) {
+    init(authService: AuthService, notesManager: NotesManager, savedNotes: Binding<[Note]>) {
         self.authService = authService
         self.notesManager = notesManager
         self._userProfile = StateObject(wrappedValue: UserProfile(userInfo: authService.userInfo ?? UserInfo()))
+        self._savedNotes = savedNotes
 //        self.userProfile.updateAvatar()
 //        self.userProfile = UserProfile(userInfo: authService.userInfo ?? UserInfo())
     }
@@ -335,7 +337,7 @@ struct ProfileView: View {
                                     .foregroundColor(Theme.header)
                                     .padding(.horizontal)
                                 ForEach(userNotes) { note in
-                                    NoteCard(note: note, savedNotes: .constant(userNotes), notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
+                                    NoteCard(note: note, savedNotes: $savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                 }
                             }
                             .padding(.top, 16)

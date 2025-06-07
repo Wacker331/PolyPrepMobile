@@ -5,7 +5,7 @@ import PDFKit
 struct NoteCard: View {
     @State /*private */var note: Note
     @State private var isLiked: Bool
-    @State private var isSaved: Bool
+//    @State private var isSaved: Bool
     @State private var isExpanded = false
     @State private var textHeight: CGFloat = 0
     @State private var hashtagColors: [Color]
@@ -16,6 +16,24 @@ struct NoteCard: View {
     @State private var showLikeAlert = false
     @State private var showSaveAlert = false
     var currentUsername: String
+    
+    private var isSaved: Bool {
+        get { savedNotes.contains(where: { $0.id == note.id }) }
+//        set {
+//            if newValue {
+//                // Добавляем заметку в сохраненные, если ее еще нет
+//                if !savedNotes.contains(where: { $0.id == note.id }) {
+//                    savedNotes.append(note)
+//                }
+//            } else {
+//                // Удаляем заметку из сохраненных
+//                savedNotes.removeAll(where: { $0.id == note.id })
+//            }
+//            
+//            // Обновляем локальное состояние заметки
+//            note.isSaved = newValue
+//        }
+    }
     
     private var likesCount: Int {
         if let savedNote = savedNotes.first(where: { $0.id == note.id }) {
@@ -45,7 +63,9 @@ struct NoteCard: View {
         self.currentUsername = currentUsername
         self._hashtagColors = State(initialValue: Self.generateRandomColors(count: note.hashtags.count))
         self.isLiked = note.isLiked
-        self.isSaved = note.isSaved
+//        self.isSaved = note.isSaved
+//        self.isSaved = savedNotes.contains(where: { $0.id == note.id })
+        
     }
     
     private static func generateRandomColors(count: Int) -> [Color] {
@@ -81,17 +101,28 @@ struct NoteCard: View {
         }
     }
     
-    private func toggleSaveNote() {
+    private func toggleSaveNote() -> Bool {
         if isSaved {
-            savedNotes.removeAll(where: { $0.id == note.id })
+            if note.DelFavourite()
+            {
+                savedNotes.removeAll(where: { $0.id == note.id })
+            }
+            else {
+                return true
+            }
         } else {
-            let updatedNote = note
-            updatedNote.isLiked = isLiked
-            updatedNote.likesCount = likesCount
-            updatedNote.comments = comments
-            updatedNote.commentsCount = commentsCount
-            savedNotes.append(updatedNote)
+            if note.SetFavourite()
+            {
+                let updatedNote = note
+                updatedNote.isLiked = isLiked
+                updatedNote.likesCount = likesCount
+                updatedNote.comments = comments
+                updatedNote.commentsCount = commentsCount
+                savedNotes.append(updatedNote)
+            }
+            else { return true }
         }
+        return false
     }
     
     var body: some View {
@@ -284,23 +315,23 @@ struct NoteCard: View {
     {
         Button(action: {
             withAnimation {
-                toggleSaveNote()
-                if (!isSaved)
-                {
-                    // сохранить
-                    isSaved = note.SetFavourite()
-                    note.isSaved = isSaved
-                    // Если не поставился -> алерт
-                    showSaveAlert = !isSaved
-                }
-                else // если сохранено
-                {
-                    // удалить
-                    isSaved = !note.DelFavourite() // возращает true если удалили
-                    note.isSaved = isSaved
-                    // Если сохранение осталось -> алерт
-                    showSaveAlert = isSaved
-                }
+                showSaveAlert = toggleSaveNote()
+//                if (!isSaved)
+//                {
+//                    // сохранить
+//                    self.isSaved = note.SetFavourite()
+//                    note.isSaved = isSaved
+//                    // Если не поставился -> алерт
+//                    showSaveAlert = !isSaved
+//                }
+//                else // если сохранено
+//                {
+//                    // удалить
+//                    self.isSaved = !note.DelFavourite() // возращает true если удалили
+//                    note.isSaved = isSaved
+//                    // Если сохранение осталось -> алерт
+//                    showSaveAlert = isSaved
+//                }
 //                notesManager.notes.removeAll(where: { $0.id == note.id })
 //                notesManager.notes.append(notesManager.getNoteById(note.id)!)
             }
