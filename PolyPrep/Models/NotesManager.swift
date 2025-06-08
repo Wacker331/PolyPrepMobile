@@ -39,7 +39,10 @@ class NotesManager: ObservableObject {
 //        startScheduledNotesTimer()
         notes.removeAll()
         fetchNotes()
-        savedNotes = getFavourites()
+        getFavourites() { favourites in
+            self.savedNotes = favourites
+        }
+        getUserNotes(username: "")
         watchConnector.sendNotesToWatch(notes: savedNotes)
     }
     
@@ -47,35 +50,28 @@ class NotesManager: ObservableObject {
 //        timer?.invalidate()
     }
     
-//    private func startScheduledNotesTimer() {
-//        // Проверяем отложенные заметки каждую минуту
-//        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-//            self?.checkScheduledNotes()
-//        }
-//    }
-//    
-//    private func checkScheduledNotes() {
-//        let now = Date()
-//        var updatedNotes = notes
-//        
-//        for (index, note) in notes.enumerated() {
-//            if note.isScheduled,
-//               let scheduledDate = note.scheduledDate,
-//               scheduledDate <= now {
-//                let updatedNote = note
-//                updatedNote.isScheduled = false
-//                updatedNote.isPrivate = false
-//                updatedNote.scheduledDate = nil
-//                updatedNotes[index] = updatedNote
-//            }
-//        }
-//        
-//        if updatedNotes != notes {
-//            DispatchQueue.main.async { [weak self] in
-//                self?.notes = updatedNotes
-//            }
-//        }
-//    }
+    private var notesDictionary: [Int: Note] = [:]
+    func updateNote(_ updatedNote: Note) {
+        if let index = notes.firstIndex(where: { $0.id == updatedNote.id }) {
+            notes[index] = updatedNote
+        }
+        
+        if let savIndex = savedNotes.firstIndex(where: { $0.id == updatedNote.id }) {
+            if updatedNote.isSaved {
+                savedNotes[savIndex] = updatedNote // Обновляем
+            } else {
+                savedNotes.remove(at: savIndex) // Удаляем если сняли из избранного
+            }
+        } else if updatedNote.isSaved {
+            savedNotes.append(updatedNote) // Добавляем если новый избранный
+        }
+        
+        if let userIndex = user_notes.firstIndex(where: { $0.id == updatedNote.id }) {
+            user_notes[userIndex] = updatedNote // Обновляем
+        }
+        
+        objectWillChange.send()
+    }
     
     func addNote(_ note: Note) {
         // Все заметки добавляются в начало списка
@@ -88,11 +84,13 @@ class NotesManager: ObservableObject {
     
     func updateFavourites()
     {
-        savedNotes = getFavourites()
+        getFavourites() { favourites in
+            self.savedNotes = favourites
+        }
         watchConnector.sendNotesToWatch(notes: savedNotes)
     }
     
-    private func getFavourites() -> [Note]
+    private func getFavourites(completion: @escaping ([Note]) -> Void)
     {
         guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.favourite) else {
             fatalError("Invalid URL")
@@ -103,7 +101,7 @@ class NotesManager: ObservableObject {
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
         
-        var result: [Note] = []
+//        var result: [Note] = []
         
         DispatchQueue.global(qos: .background).async {
             guard let (data, response) = HandleNetwork(request) else {
@@ -127,20 +125,22 @@ class NotesManager: ObservableObject {
                         }
                     }
                     DispatchQueue.main.async {
-                        result = favourites
+                        completion(favourites)
                     }
 //                    return favourites
                 }
                 return
             } catch { return }
         }
-        return result
+        return
     }
     
     func getUserNotes(username: String) -> [Note] {
         if (user_notes.isEmpty)
         {
-            user_notes = fetchUserNotes()
+            fetchUserNotes() { userNotes in
+                self.user_notes = userNotes
+            }
         }
         return user_notes
         //        notes.filter { $0.author == username }
@@ -180,7 +180,7 @@ class NotesManager: ObservableObject {
         return nil
     }
     
-    func fetchUserNotes() -> [Note]
+    func fetchUserNotes(completion: @escaping ([Note]) -> Void)
     {
         guard let url = URL(string: APIConstants.baseURL + APIConstants.PostEndpoints.user_posts) else {
             fatalError("Invalid URL")
@@ -195,36 +195,41 @@ class NotesManager: ObservableObject {
         request.setValue("Bearer " + accessToken!, forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
         
-        guard let (data, _) = HandleNetwork(request) else {
-            return []
-        }
-        
-        do {
-            let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-            
-            if let posts = json
-            {
-                for post in posts {
-//                    let comments = getComments(id: post["id"] as! Int) ?? []
-                    Notes.append(
-                        Note(
-                            id: post["id"] as! Int,
-                            author: getUsername(id: post["author_id"] as! String),
-                            date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
-                            title: post["title"] as! String, content: post["text"] as! String,
-                            hashtags: post["hashtages"] as! [String],
-                            isPrivate: !(post["public"] as! Bool),
-                            attachments: fetchIncludes(id: post["id"] as! Int)
-                        )
-                     )
-                }
-                return Notes
+        DispatchQueue.global(qos: .background).async {
+            guard let (data, _) = HandleNetwork(request) else {
+                return
             }
             
-        } catch {
-            print("🚨 JSON decoding error:", error.localizedDescription)
+            do {
+                let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+                
+                if let posts = json
+                {
+                    for post in posts {
+                        //                    let comments = getComments(id: post["id"] as! Int) ?? []
+                        Notes.append(
+                            Note(
+                                id: post["id"] as! Int,
+                                author: getUsername(id: post["author_id"] as! String),
+                                date: Date(timeIntervalSince1970: post["updated_at"] as! TimeInterval),
+                                title: post["title"] as! String, content: post["text"] as! String,
+                                hashtags: post["hashtages"] as! [String],
+                                isPrivate: !(post["public"] as! Bool),
+                                attachments: self.fetchIncludes(id: post["id"] as! Int)
+                            )
+                        )
+                    }
+                    DispatchQueue.main.async {
+                        completion(Notes)
+                    }
+                    //                return Notes
+                }
+                
+            } catch {
+                print("🚨 JSON decoding error:", error.localizedDescription)
+            }
         }
-        return []
+        return
     }
     
     func searchNotes(_ searchText: String)
@@ -478,11 +483,11 @@ class NotesManager: ObservableObject {
         }
     }
     
-    func updateNote(_ note: Note) {
-        if let index = notes.firstIndex(where: { $0.id == note.id }) {
-            notes[index] = note
-        }
-    }
+//    func updateNote(_ note: Note) {
+//        if let index = notes.firstIndex(where: { $0.id == note.id }) {
+//            notes[index] = note
+//        }
+//    }
     
     func updateNoteLikes(noteId: Int, isLiked: Bool, likesCount: Int) {
         if let index = notes.firstIndex(where: { $0.id == noteId }) {

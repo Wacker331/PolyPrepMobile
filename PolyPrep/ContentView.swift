@@ -57,8 +57,8 @@ struct ContentView: View {
                             ScrollView {
                                 LazyVStack(spacing: 16) {
                                    
-                                    ForEach(notesManager.notes) { note in
-                                        NoteCard(note: note, savedNotes: $notesManager.savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
+                                    ForEach($notesManager.notes) { $note in
+                                        NoteCard(note: $note, savedNotes: $notesManager.savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                             .contentShape(Rectangle())
                                     }
                                 }
@@ -162,8 +162,8 @@ struct ContentView: View {
                         //                                     notesManager: notesManager,
                         //                                     currentUsername: authService.username ?? "Неизвестный пользователь").contentShape(Rectangle())
                         //                        }
-                        ForEach(notesManager.savedNotes) { note in
-                            NoteCard(note: note, savedNotes: $notesManager.savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
+                        ForEach($notesManager.savedNotes) { $note in
+                            NoteCard(note: $note, savedNotes: $notesManager.savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                 .contentShape(Rectangle())
                         }
                     }
@@ -243,13 +243,21 @@ struct ProfileView: View {
         self.notesManager = notesManager
         self._userProfile = StateObject(wrappedValue: UserProfile(userInfo: authService.userInfo ?? UserInfo()))
         self._savedNotes = savedNotes
+//        updateUserNotes()
 //        self.userProfile.updateAvatar()
 //        self.userProfile = UserProfile(userInfo: authService.userInfo ?? UserInfo())
     }
     
-    var userNotes: [Note] {
-        notesManager.getUserNotes(username: authService.username ?? "")
-    }
+    @State private var userNotes: [Note] = []
+//    private func updateUserNotes() {
+////        userNotes = notesManager.getUserNotes(username: authService.username ?? "")
+//        notesManager.fetchUserNotes() { userNotes in
+//            self.userNotes = userNotes
+//        }
+//    }
+//    var userNotes: [Note] {
+//        notesManager.getUserNotes(username: authService.username ?? "")
+//    }
     
     var body: some View {
         ZStack {
@@ -305,8 +313,10 @@ struct ProfileView: View {
                             Button(action: {
                                 authService.updateUserInfo()
                                 notesManager.user_notes.removeAll()
+                                notesManager.getUserNotes(username: authService.username ?? "")
                                 userProfile.loadAvatar((authService.profile_img_link ?? authService.userInfo?.img_link)!)
                                 notesManager.updateFavourites()
+//                                updateUserNotes()
                             }) {
                                 Text("Обновить")
                                     .foregroundColor(.white)
@@ -330,17 +340,19 @@ struct ProfileView: View {
                         .padding(.top, 60)
                         
                         // Все заметки пользователя
-                        if !userNotes.isEmpty {
+                        if !notesManager.user_notes.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Мои заметки")
                                     .font(.title2)
                                     .foregroundColor(Theme.header)
                                     .padding(.horizontal)
-                                ForEach(userNotes) { note in
-                                    NoteCard(note: note, savedNotes: $savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
+                                ForEach($notesManager.user_notes) { $note in
+                                    NoteCard(note: $note, savedNotes: $savedNotes, notesManager: notesManager, currentUsername: authService.username ?? "Неизвестный пользователь")
                                 }
                             }
                             .padding(.top, 16)
+//                            .onAppear { updateUserNotes() }
+//                            .refreshable { updateUserNotes() }
                         }
                     }
                 }

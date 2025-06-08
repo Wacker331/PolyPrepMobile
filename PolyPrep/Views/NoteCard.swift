@@ -3,8 +3,9 @@ import AVFoundation
 import PDFKit
 
 struct NoteCard: View {
-    @State /*private */var note: Note
-    @State private var isLiked: Bool
+    @Binding /*private */var note: Note
+//    @State private var isLiked: Bool
+    @Binding private var isLiked: Bool
 //    @State private var isSaved: Bool
     @State private var isExpanded = false
     @State private var textHeight: CGFloat = 0
@@ -56,13 +57,13 @@ struct NoteCard: View {
         return note.comments
     }
     
-    init(note: Note, savedNotes: Binding<[Note]>, notesManager: NotesManager, currentUsername: String) {
-        self.note = note
+    init(note: Binding<Note>, savedNotes: Binding<[Note]>, notesManager: NotesManager, currentUsername: String) {
+        self._note = note
         self._savedNotes = savedNotes
         self.notesManager = notesManager
         self.currentUsername = currentUsername
-        self._hashtagColors = State(initialValue: Self.generateRandomColors(count: note.hashtags.count))
-        self.isLiked = note.isLiked
+        self._hashtagColors = State(initialValue: Self.generateRandomColors(count: note.wrappedValue.hashtags.count))
+        self._isLiked = note.isLiked
 //        self.isSaved = note.isSaved
 //        self.isSaved = savedNotes.contains(where: { $0.id == note.id })
         
@@ -85,20 +86,42 @@ struct NoteCard: View {
     }
     
     private func toggleLike() {
-        if isSaved {
-            if let index = savedNotes.firstIndex(where: { $0.id == note.id }) {
-                let updatedNote = savedNotes[index]
-                updatedNote.isLiked.toggle()
-                updatedNote.likesCount += updatedNote.isLiked ? 1 : -1
-                savedNotes[index] = updatedNote
-                notesManager.updateNoteLikes(noteId: note.id, isLiked: updatedNote.isLiked, likesCount: updatedNote.likesCount)
-            }
-        } else {
+//        if isSaved {
+//            if let index = savedNotes.firstIndex(where: { $0.id == note.id }) {
+//                let updatedNote = savedNotes[index]
+////                updatedNote.isLiked.toggle()
+//                if (note.isLiked)
+//                {
+//                    note.isLiked = !note.DelLike()
+//                }
+//                else
+//                {
+//                    note.isLiked = note.SetLike()
+//                }
+//                updatedNote.isLiked = note.isLiked
+//                self.isLiked = updatedNote.isLiked
+////                updatedNote.likesCount += updatedNote.isLiked ? 1 : -1
+//                savedNotes[index] = updatedNote
+//                notesManager.updateNoteLikes(noteId: note.id, isLiked: updatedNote.isLiked, likesCount: updatedNote.likesCount)
+//                notesManager.updateNote(updatedNote)
+//            }
+//        } else {
             let updatedNote = note
-            updatedNote.isLiked.toggle()
-            updatedNote.likesCount += updatedNote.isLiked ? 1 : -1
+//            updatedNote.isLiked.toggle()
+            if (note.isLiked)
+            {
+                updatedNote.isLiked = !updatedNote.DelLike()
+            }
+            else
+            {
+                updatedNote.isLiked = updatedNote.SetLike()
+            }
+//            updatedNote.isLiked = note.isLiked
+            self.isLiked = updatedNote.isLiked
+//            updatedNote.likesCount += updatedNote.isLiked ? 1 : -1
             notesManager.updateNoteLikes(noteId: note.id, isLiked: updatedNote.isLiked, likesCount: updatedNote.likesCount)
-        }
+            notesManager.updateNote(updatedNote)
+//        }
     }
     
     private func toggleSaveNote() -> Bool {
@@ -122,6 +145,8 @@ struct NoteCard: View {
             }
             else { return true }
         }
+//        notesManager.updateFavourites()
+        notesManager.watchConnector.sendNotesToWatch(notes: savedNotes)
         return false
     }
     
@@ -278,23 +303,24 @@ struct NoteCard: View {
         // Кнопка лайка
         Button(action: {
             withAnimation {
+                // Если ещё не лайкнуто
+                toggleLike()
+//                if (!isLiked)
+//                {
+//                    // Поставить лайк
+//                    isLiked = note.SetLike()
+//                    // Если не поставился -> алерт
+//                    showLikeAlert = !isLiked
+//                }
+//                else // если лайкнуто
+//                {
+//                    // убрать лайк
+//                    isLiked = !note.DelLike() // возращает true если лайк убран
+//                    // Если лайк остался -> алерт
+//                    showLikeAlert = isLiked
+//                }
 //                isLiked.toggle()
 //                likesCount += isLiked ? 1 : -1
-                // Если ещё не лайкнуто
-                if (!isLiked)
-                {
-                    // Поставить лайк
-                    isLiked = note.SetLike()
-                    // Если не поставился -> алерт
-                    showLikeAlert = !isLiked
-                }
-                else // если лайкнуто
-                {
-                    // убрать лайк
-                    isLiked = !note.DelLike() // возращает true если лайк убран
-                    // Если лайк остался -> алерт
-                    showLikeAlert = isLiked
-                }
             }
         }) {
             HStack(spacing: 4) {
@@ -721,10 +747,10 @@ struct AudioPlayerView: View {
 //            commentsCount: 0,
 //            like_id: -1
     )
-    NoteCard(
-        note: note,
-        savedNotes: .constant([]),
-        notesManager: NotesManager(),
-        currentUsername: "Макс Пупкин"
-    )
+//    NoteCard(
+//        note: $note,
+//        savedNotes: .constant([]),
+//        notesManager: NotesManager(),
+//        currentUsername: "Макс Пупкин"
+//    )
 }
