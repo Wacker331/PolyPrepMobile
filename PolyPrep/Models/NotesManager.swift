@@ -31,7 +31,7 @@ class NotesManager: ObservableObject {
     
     @Published var user_notes: [Note] = []
     
-    @StateObject var watchConnector = WatchConnector()
+    let watchConnector = WatchConnector()
     
 //    private var timer: Timer?
     
@@ -136,12 +136,12 @@ class NotesManager: ObservableObject {
     }
     
     func getUserNotes(username: String) -> [Note] {
-        if (user_notes.isEmpty)
-        {
+//        if (user_notes.isEmpty)
+//        {
             fetchUserNotes() { userNotes in
                 self.user_notes = userNotes
             }
-        }
+//        }
         return user_notes
         //        notes.filter { $0.author == username }
     }

@@ -158,37 +158,8 @@ struct NoteCard: View {
                     .font(.headline)
                     .foregroundColor(.black)
                 Spacer()
-                VStack(alignment: .trailing, spacing: 4) {
-                    HStack(spacing: 4) {
-                        if note.isScheduled {
-                            Image(systemName: "clock.fill")
-                                .foregroundColor(.black)
-                            Text("Time")
-                                .font(.caption)
-                                .foregroundColor(.black)
-                        } else if note.isPrivate {
-                            Image(systemName: "lock.fill")
-                                .foregroundColor(.black)
-                            Text("Private")
-                                .font(.caption)
-                                .foregroundColor(.black)
-                        }
-                        Text(note.date, style: .date)
-                            .font(.subheadline)
-                            .foregroundColor(.black)
-                    }
-                    HStack(spacing: 8) {
-                        if note.author == currentUsername {
-                            Button(action: {
-                                showDeleteAlert = true
-                            }) {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                            }
-                        }
-                        saveButton
-                    }
-                }
+                
+                Header
             }
             
             // Автор
@@ -201,27 +172,7 @@ struct NoteCard: View {
             }
             
             // Контент
-            Button(action: {
-                if textHeight > 60 || note.attachments.count > 2 {
-                    withAnimation {
-                        isExpanded.toggle()
-                    }
-                }
-            }) {
-                Text(note.content + ((textHeight > 60 || note.attachments.count > 2) && !isExpanded ? "..." : ""))
-                    .font(.body)
-                    .foregroundColor(.black)
-                    .lineLimit(isExpanded ? nil : 3)
-                    .multilineTextAlignment(.leading)
-                    .background(
-                        GeometryReader { geometry in
-                            Color.clear.onAppear {
-                                textHeight = geometry.size.height
-                            }
-                        }
-                    )
-            }
-            .buttonStyle(PlainButtonStyle())
+            ContentButton
             
             // Вложения
             if !note.attachments.isEmpty {
@@ -298,6 +249,70 @@ struct NoteCard: View {
             rootVC.present(activityVC, animated: true)
         }
     }
+    
+    private var Header: some View
+    {
+        VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 4) {
+                if note.isScheduled {
+                    Image(systemName: "clock.fill")
+                        .foregroundColor(.black)
+                    Text("Time")
+                        .font(.caption)
+                        .foregroundColor(.black)
+                } else if note.isPrivate {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.black)
+                    Text("Private")
+                        .font(.caption)
+                        .foregroundColor(.black)
+                }
+                Text(note.date, style: .date)
+                    .font(.subheadline)
+                    .foregroundColor(.black)
+            }
+            HStack(spacing: 8) {
+                if note.author == currentUsername {
+                    Button(action: {
+                        showDeleteAlert = true
+                    }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
+                saveButton
+            }
+        }
+    }
+    
+    private var ContentButton: some View
+    {
+        Button(action: {
+            if textHeight > 60 || note.attachments.count > 2 {
+                withAnimation {
+                    isExpanded.toggle()
+                }
+            }
+        }) {
+//            if let attributedString = try? AttributedString(markdown: note.content ?? "") {
+//                Text(attributedString)
+//            }
+            Text(note.content + ((textHeight > 60 || note.attachments.count > 2) && !isExpanded ? "..." : ""))
+                .font(.body)
+                .foregroundColor(.black)
+                .lineLimit(isExpanded ? nil : 3)
+                .multilineTextAlignment(.leading)
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.onAppear {
+                            textHeight = geometry.size.height
+                        }
+                    }
+                )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
     private var likeButton: some View
     {
         // Кнопка лайка

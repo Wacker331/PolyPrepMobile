@@ -74,11 +74,11 @@ class AuthService: ObservableObject {
         {
             do {
                 let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                DispatchQueue.main.async {
+//                DispatchQueue.main.async {
                     self.accessToken = json?["access_token"] as? String ?? ""
                     self.refreshToken = json?["refresh_token"] as? String ?? ""
                     self.fetchUserInfo(token: self.accessToken!)
-                }
+//                }
             } catch {}
             return true
         }
@@ -272,13 +272,16 @@ class AuthService: ObservableObject {
         return json/*["sub"] as? String*/
     }
     
-    func CheckTokenValidity(_ token: inout String)
-    {
-        if (getExpTimeFromToken(token)! < Date())
-        {
-            return
-        }
-        _ = RefreshToken(refresh_token: self.refreshToken ?? "")
-        token = accessToken ?? ""
-    }
+//    func CheckTokenValidity(_ token: String) -> String
+//    {
+//        var retToken = token
+//        if (getExpTimeFromToken(token)! < Date())
+//        {
+//            return retToken
+//        }
+//        _ = RefreshToken(refresh_token: self.refreshToken ?? "") { newToken in
+//            retToken = newToken
+//        }
+//        return retToken
+//    }
 }
