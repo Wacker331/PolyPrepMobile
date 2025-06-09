@@ -627,27 +627,27 @@ struct AttachmentView: View {
 struct AttachmentPreviewView: View {
     var attachment: Attachment
     @Environment(\.dismiss) private var dismiss
+    @State private var showAlert = false
+    @State private var alertMessage = ""
     
     init(attachment: Attachment) {
         self.attachment = attachment
         self.attachment.fileData = LoadInclude(attachment.fileLink) ?? Data()
+//        self.attachment.fileData.suggestedFilename = self.attachment.fileName
     }
     
     var body: some View {
         NavigationView {
             Group {
                 if attachment.fileType.lowercased().contains("image") {
-                    if let image = UIImage(data: attachment.fileData) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                    }
+                    ShowImage
                 } else if attachment.fileType.lowercased().contains("audio") {
                     AudioPlayerView(data: attachment.fileData)
+                    
                 } else if attachment.fileType.lowercased().contains("pdf") {
                     PDFUIView(data: attachment.fileData)
                 } else {
-//                    let attributedString = try? AttributedString(markdown: String(data: attachment.fileData, encoding: .utf8) ?? "")
+                    //                    let attributedString = try? AttributedString(markdown: String(data: attachment.fileData, encoding: .utf8) ?? "")
                     if let text = String(data: attachment.fileData, encoding: .utf8) {
                         ScrollView {
                             Text(text)
@@ -655,9 +655,37 @@ struct AttachmentPreviewView: View {
                                 .padding()
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .toolbar {
+                            ToolbarItem(placement: .bottomBar) {
+                                HStack
+                                {
+                                    ShareLink(item: text, preview: SharePreview(attachment.fileName))
+                                    {
+                                        Label("Поделиться", systemImage: "square.and.arrow.up")
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Spacer()
+                                }
+                            }
+                        }
                     } else {
                         Text("Не удалось открыть файл")
                             .foregroundColor(.gray)
+                            .toolbar {
+                                ToolbarItem(placement: .bottomBar) {
+                                    HStack
+                                    {
+                                        ShareLink(item: attachment.fileData, preview: SharePreview(attachment.fileName))
+                                        {
+                                            Label("Поделиться", systemImage: "square.and.arrow.up")
+                                        }
+                                        .buttonStyle(.plain)
+                                        
+                                        Spacer()
+                                    }
+                                }
+                            }
                     }
                 }
             }
@@ -672,7 +700,55 @@ struct AttachmentPreviewView: View {
             }
         }
     }
+    private var ShowImage: some View
+    {
+        let image = UIImage(data: attachment.fileData)
+        return VStack {
+            Image(uiImage: image!)
+                .resizable()
+                .scaledToFit()
+        }
+        .toolbar {
+            ToolbarItem(placement: .bottomBar) {
+                HStack
+                {
+                    ShareLink(item: Image(uiImage: image!), preview: SharePreview("Изображение", image: Image(uiImage: image!))) {
+                        Label("", systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Spacer()
+                }
+            }
+        }
+    }
 }
+
+extension PDFDocument: @retroactive Transferable {
+    public static var transferRepresentation: some TransferRepresentation {
+    DataRepresentation(contentType: .pdf) { pdf in
+        if let data = pdf.dataRepresentation() {
+            return data
+        } else {
+            return Data()
+        }
+    } importing: { data in
+        if let pdf = PDFDocument(data: data) {
+            return pdf
+        } else {
+            return PDFDocument()
+        }
+    }
+        DataRepresentation(exportedContentType: .pdf) { pdf in
+            if let data = pdf.dataRepresentation() {
+                return data
+            } else {
+                return Data()
+            }
+        }
+    }
+}
+
 
 struct PDFKitView: UIViewRepresentable {
 
@@ -710,7 +786,21 @@ struct PDFUIView: View {
 
     var body: some View {
         PDFKitView(showing: pdfDoc)
-    }
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    HStack
+                    {
+                        ShareLink(item: pdfDoc, preview: SharePreview("PDF", image: Image(systemName: "document")))
+                        {
+                            Label("Поделиться", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                    }
+                }
+            }
+                                  }
 }
 
 struct AudioPlayerView: View {
