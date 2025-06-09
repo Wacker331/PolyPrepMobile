@@ -41,16 +41,16 @@ class NotesManager: ObservableObject {
         fetchNotes()
         getFavourites() { favourites in
             self.savedNotes = favourites
+            self.watchConnector.sendNotesToWatch(notes: self.savedNotes)
         }
         getUserNotes(username: "")
-        watchConnector.sendNotesToWatch(notes: savedNotes)
     }
     
     deinit {
 //        timer?.invalidate()
     }
     
-    private var notesDictionary: [Int: Note] = [:]
+//    private var notesDictionary: [Int: Note] = [:]
     func updateNote(_ updatedNote: Note) {
         if let index = notes.firstIndex(where: { $0.id == updatedNote.id }) {
             notes[index] = updatedNote
@@ -86,8 +86,8 @@ class NotesManager: ObservableObject {
     {
         getFavourites() { favourites in
             self.savedNotes = favourites
+            self.watchConnector.sendNotesToWatch(notes: self.savedNotes)
         }
-        watchConnector.sendNotesToWatch(notes: savedNotes)
     }
     
     private func getFavourites(completion: @escaping ([Note]) -> Void)
@@ -144,6 +144,12 @@ class NotesManager: ObservableObject {
 //        }
         return user_notes
         //        notes.filter { $0.author == username }
+    }
+    
+    func logout()
+    {
+        user_notes.removeAll()
+        savedNotes.removeAll()
     }
     
     func getNoteById(_ id: Int) -> Note?

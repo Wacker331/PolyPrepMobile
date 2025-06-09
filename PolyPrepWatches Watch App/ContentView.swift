@@ -42,7 +42,8 @@ struct SavedNotesView: View {
 //    @State var savedNotes: [Note]
 //    var phoneConnector: PhoneConnector = PhoneConnector()
     @StateObject private var phoneConnector: PhoneConnector
-    @State private var showFullNote = false
+//    @State private var showFullNote = false
+    @State private var expandedNoteID: Int? = nil
     
     init(savedNotes: [Note]) {
         _phoneConnector = StateObject(wrappedValue: PhoneConnector(savedNotes: savedNotes))
@@ -59,11 +60,15 @@ struct SavedNotesView: View {
             List {
                 ForEach(phoneConnector.savedNotes) { note in
                     Button(action: {
-                        showFullNote = true
+//                        showFullNote = true
+                        expandedNoteID = note.id
                     }){
                         NoteRow(note: note)
                     }
-                    .sheet(isPresented: $showFullNote)
+                    .sheet(isPresented: Binding(
+                                        get: { expandedNoteID == note.id },
+                                        set: { if !$0 { expandedNoteID = nil } }
+                                        ))
                     {
                         NoteView(note: note)
                     }
@@ -146,6 +151,8 @@ class Note: Identifiable, Codable
     var content: String
     var author: String
     var date: Date
+//    var IncludesLinks: [String] = []
+    var showFull: Bool = false
     
     init(id: Int, title: String, content: String, author: String, date: Date)
     {

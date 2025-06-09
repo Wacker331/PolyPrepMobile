@@ -130,7 +130,6 @@ class AuthService: ObservableObject {
         {
             print("something went wrong :(")
         }
-        
     }
     
     func handleAuthCallback(url: URL) {
@@ -168,11 +167,12 @@ class AuthService: ObservableObject {
             
             do {
                 let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                DispatchQueue.main.async {
+//                DispatchQueue.main.async {
                     self.accessToken = json?["access_token"] as? String ?? ""
                     self.refreshToken = json?["refresh_token"] as? String ?? ""
+                    print("TOKENS SET")
                     self.fetchUserInfo(token: self.accessToken!)
-                }
+//                }
             } catch {
                 DispatchQueue.main.async {
                     self.error = error.localizedDescription
@@ -186,7 +186,9 @@ class AuthService: ObservableObject {
         guard let url = URL(string: APIConstants.baseURL + APIConstants.AuthEndpoints.userInfo + "?id=" + (getUserIdFromToken(token) ?? "")) else { return }
         
         var request = URLRequest(url: url)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        var tmp_token = token
+//        CheckTokenValidity(&tmp_token)
+        request.setValue("Bearer \(tmp_token)", forHTTPHeaderField: "Authorization")
         
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }

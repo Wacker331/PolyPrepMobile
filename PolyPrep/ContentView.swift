@@ -87,6 +87,9 @@ struct ContentView: View {
                         var mutableNote = newNote
                         notesManager.UploadNote(Note: &mutableNote)
                         notesManager.addNote(mutableNote)
+                        notesManager.fetchUserNotes() { userNotes in
+                            notesManager.user_notes = userNotes
+                        }
                     }, currentUsername: authService.username ?? "Неизвестный пользователь")
                 }
                 .sheet(isPresented: $showSearch)
@@ -328,6 +331,7 @@ struct ProfileView: View {
                             
                             Button(action: {
                                 authService.logout()
+                                notesManager.logout()
                             }) {
                                 Text("Выйти")
                                     .foregroundColor(.white)
@@ -377,6 +381,12 @@ struct ProfileView: View {
                     Button(action: {
                         Task {
                             await authService.CheckAuth(with: webAuthenticationSession)
+                            while (authService.accessToken == "")
+                            {
+                                
+                            }
+                            notesManager.getUserNotes(username: authService.username ?? "")
+                            notesManager.updateFavourites()
                         }
                         }) {
                         Text("Вход")
